@@ -7,6 +7,7 @@ A collection of scripts and C++ codes to pre- and post-process the numerical sol
 ---
 
 * PETSc (3.7.4)
+* PetIBM (0.2)
 
 ## Contents
 ---
