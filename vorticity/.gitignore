@@ -1,6 +1,0 @@
-# Ignore executables
-vorticity2d
-vorticity3d
-
-# Ignore object files
-*.o
