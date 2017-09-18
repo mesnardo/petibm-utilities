@@ -27,3 +27,21 @@ PetscErrorCode ComputeGridVorticityZ(Field ux, Field uy, Field &wz);
  * \param wz Field of the z-vorticity (passed by reference).
  */
 PetscErrorCode ComputeVorticityZ(Field ux, Field uy, Field &wz);
+
+/*! Computes the gridlines for the vorticity in the x-direction.
+ *
+ * \param uy Field structure; velocity in the y-direction.
+ * \param uz Field structure; velocity in the z-direction.
+ * \param wx Field of the x-vorticity (passed by reference).
+ */
+PetscErrorCode ComputeGridVorticityX(Field uy, Field uz, Field &wx);
+
+/*! Computes the vorticity in the x-direction.
+ *
+ * First-order.
+ *
+ * \param uy Field structure; velocity in the y-direction.
+ * \param uz Field structure; velocity in the z-direction.
+ * \param wx Field of the x-vorticity (passed by reference).
+ */
+PetscErrorCode ComputeVorticityX(Field uy, Field uz, Field &wx);

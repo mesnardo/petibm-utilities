@@ -25,6 +25,10 @@ PetscErrorCode FieldInitialize(Field &field)
   ierr = DMDAGetLocalInfo(field.da, &info);
   ierr = VecCreateSeq(PETSC_COMM_SELF, info.mx, &field.x); CHKERRQ(ierr);
   ierr = VecCreateSeq(PETSC_COMM_SELF, info.my, &field.y); CHKERRQ(ierr);
+  if (info.dim == 3)
+  {
+  	ierr = VecCreateSeq(PETSC_COMM_SELF, info.mz, &field.y); CHKERRQ(ierr);
+  }
 
   PetscFunctionReturn(0);
 } // FieldInitialize
@@ -37,11 +41,17 @@ PetscErrorCode FieldInitialize(Field &field)
 PetscErrorCode FieldDestroy(Field &field)
 {
 	PetscErrorCode ierr;
+	DMDALocalInfo info;
 
 	PetscFunctionBeginUser;
 
+	ierr = DMDAGetLocalInfo(field.da, &info);
 	ierr = VecDestroy(&field.x); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.y); CHKERRQ(ierr);
+	if (info.dim == 3)
+	{
+		ierr = VecDestroy(&field.z); CHKERRQ(ierr);
+	}
 	ierr = VecDestroy(&field.global); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.local); CHKERRQ(ierr);
 	ierr = DMDestroy(&field.da); CHKERRQ(ierr);
@@ -97,6 +107,12 @@ PetscErrorCode FieldReadGrid(std::string filePath, Field &field)
 	// read y-stations
 	ierr = PetscObjectSetName((PetscObject) field.y, "y"); CHKERRQ(ierr);
 	ierr = VecLoad(field.y, viewer); CHKERRQ(ierr);
+	if (info.dim == 3)
+	{
+		// read z-stations
+		ierr = PetscObjectSetName((PetscObject) field.z, "z"); CHKERRQ(ierr);
+		ierr = VecLoad(field.z, viewer); CHKERRQ(ierr);
+	}
 
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -127,6 +143,12 @@ PetscErrorCode FieldWriteGrid(std::string filePath, Field field)
 	// read y-stations
 	ierr = PetscObjectSetName((PetscObject) field.y, "y"); CHKERRQ(ierr);
 	ierr = VecView(field.y, viewer); CHKERRQ(ierr);
+	if (info.dim == 3)
+	{
+		// read z-stations
+		ierr = PetscObjectSetName((PetscObject) field.z, "z"); CHKERRQ(ierr);
+		ierr = VecView(field.z, viewer); CHKERRQ(ierr);
+	}
 
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -148,7 +170,8 @@ PetscErrorCode FieldWriteValues(
 
 	PetscFunctionBeginUser;
 
-	ierr = PetscObjectSetName((PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
+	ierr = PetscObjectSetName(
+		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
 	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_WRITE); CHKERRQ(ierr);

@@ -11,7 +11,7 @@
 typedef struct
 {
   DM da;
-  Vec x, y;
+  Vec x, y, z;
   Vec global, local;
 } Field;
 
