@@ -1,4 +1,4 @@
-/*! Implementation of the functions for the Field structure.
+/*! Implementation of the functions for the PetibmField structure.
  * \file field.cpp
  */
 
@@ -7,13 +7,13 @@
 #include "petibm-utilities/field.hpp"
 
 
-/*! Initializes a Field structure.
+/*! Initializes a PetibmField structure.
  *
  * Creates the vectors based on the DMDA object.
  *
- * \param field The Field structure to initialize (passed by reference).
+ * \param field The PetibmField structure to initialize (passed by reference).
  */
-PetscErrorCode FieldInitialize(Field &field)
+PetscErrorCode PetibmFieldInitialize(PetibmField &field)
 {
   PetscErrorCode ierr;
   DMDALocalInfo info;
@@ -31,14 +31,14 @@ PetscErrorCode FieldInitialize(Field &field)
   }
 
   PetscFunctionReturn(0);
-} // FieldInitialize
+} // PetibmFieldInitialize
 
 
-/*! Destroys the PETSc objects of a Field structure.
+/*! Destroys the PETSc objects of a PetibmField structure.
  *
- * \param field The Field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldDestroy(Field &field)
+PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -57,16 +57,17 @@ PetscErrorCode FieldDestroy(Field &field)
 	ierr = DMDestroy(&field.da); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldDestroy
+} // PetibmFieldDestroy
 
 
 /*! Reads the field values from a HDF5 file.
  *
  * \param filePath Path of the file to read.
  * \param name The name of the field.
- * \param field The field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldReadValues(std::string filePath, std::string name, Field &field)
+PetscErrorCode PetibmFieldReadValues(
+	std::string filePath, std::string name, PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -82,15 +83,15 @@ PetscErrorCode FieldReadValues(std::string filePath, std::string name, Field &fi
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldReadValues
+} // PetibmFieldReadValues
 
 
 /*! Reads a HDF5 grid file for a given field.
  *
  * \param filePath Path of the grid file to read.
- * \param field The field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldReadGrid(std::string filePath, Field &field)
+PetscErrorCode PetibmFieldReadGrid(std::string filePath, PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -100,7 +101,8 @@ PetscErrorCode FieldReadGrid(std::string filePath, Field &field)
 
 	ierr = DMDAGetLocalInfo(field.da, &info); CHKERRQ(ierr);
 
-	ierr = PetscViewerHDF5Open(PETSC_COMM_SELF, filePath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+	ierr = PetscViewerHDF5Open(
+		PETSC_COMM_SELF, filePath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
 	// read x-stations
 	ierr = PetscObjectSetName((PetscObject) field.x, "x"); CHKERRQ(ierr);
 	ierr = VecLoad(field.x, viewer); CHKERRQ(ierr);
@@ -117,15 +119,15 @@ PetscErrorCode FieldReadGrid(std::string filePath, Field &field)
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldReadGrid
+} // PetibmFieldReadGrid
 
 
 /*! Writes a grid into a HDF5 file.
  *
  * \param filePath Path of the file to write into.
- * \param field Field structure that contains the grid.
+ * \param field PetibmField structure that contains the grid.
  */
-PetscErrorCode FieldWriteGrid(std::string filePath, Field field)
+PetscErrorCode PetibmFieldWriteGrid(std::string filePath, PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -153,17 +155,17 @@ PetscErrorCode FieldWriteGrid(std::string filePath, Field field)
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldWriteGrid
+} // PetibmFieldWriteGrid
 
 
 /*! Writes the field values into a HDF5 file.
  *
  * \param filePath Path of the file to write into.
  * \param name Name of the field.
- * \param field Field structure.
+ * \param field PetibmField structure.
  */
-PetscErrorCode FieldWriteValues(
-	std::string filePath, std::string name, Field field)
+PetscErrorCode PetibmFieldWriteValues(
+	std::string filePath, std::string name, PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -180,4 +182,4 @@ PetscErrorCode FieldWriteValues(
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldWriteValues
+} // PetibmFieldWriteValues

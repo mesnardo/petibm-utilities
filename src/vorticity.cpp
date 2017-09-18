@@ -7,11 +7,12 @@
 
 /*! Computes the gridlines for the vorticity in the z-direction.
  *
- * \param ux Field structure; velocity in the x-direction.
- * \param uy Field structure; velocity in the y-direction.
- * \param wz Field of the z-vorticity (passed by reference).
+ * \param ux PetibmField structure; velocity in the x-direction.
+ * \param uy PetibmField structure; velocity in the y-direction.
+ * \param wz PetibmField of the z-vorticity (passed by reference).
  */
-PetscErrorCode ComputeGridVorticityZ(Field ux, Field uy, Field &wz)
+PetscErrorCode PetibmComputeGridVorticityZ(
+	PetibmField ux, PetibmField uy, PetibmField &wz)
 {
 	PetscErrorCode ierr;
 	PetscReal *x, *y, *z;
@@ -51,18 +52,19 @@ PetscErrorCode ComputeGridVorticityZ(Field ux, Field uy, Field &wz)
 	}
 
 	PetscFunctionReturn(0);
-} // ComputeGridVorticityZ
+} // PetibmComputeGridVorticityZ
 
 
 /*! Computes the vorticity in the z-direction.
  *
  * First-order.
  *
- * \param ux Field structure; velocity in the x-direction.
- * \param uy Field structure; velocity in the y-direction.
- * \param wz Field of the z-vorticity (passed by reference).
+ * \param ux PetibmField structure; velocity in the x-direction.
+ * \param uy PetibmField structure; velocity in the y-direction.
+ * \param wz PetibmField of the z-vorticity (passed by reference).
  */
-PetscErrorCode ComputeVorticityZ(Field ux, Field uy, Field &wz)
+PetscErrorCode PetibmComputeFieldVorticityZ(
+	PetibmField ux, PetibmField uy, PetibmField &wz)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -142,16 +144,17 @@ PetscErrorCode ComputeVorticityZ(Field ux, Field uy, Field &wz)
 		        "Function only supports 2D or 3D fields");
 
 	PetscFunctionReturn(0);
-} // FieldComputeVorticityZ
+} // PetibmComputeFieldVorticityZ
 
 
 /*! Computes the gridlines for the vorticity in the x-direction.
  *
- * \param uy Field structure; velocity in the y-direction.
- * \param uz Field structure; velocity in the z-direction.
- * \param wx Field of the x-vorticity (passed by reference).
+ * \param uy PetibmField structure; velocity in the y-direction.
+ * \param uz PetibmField structure; velocity in the z-direction.
+ * \param wx PetibmField of the x-vorticity (passed by reference).
  */
-PetscErrorCode ComputeGridVorticityX(Field uy, Field uz, Field &wx)
+PetscErrorCode PetibmComputeGridVorticityX(
+	PetibmField uy, PetibmField uz, PetibmField &wx)
 {
 	PetscErrorCode ierr;
 	PetscReal *x, *y, *z;
@@ -191,18 +194,19 @@ PetscErrorCode ComputeGridVorticityX(Field uy, Field uz, Field &wx)
 	ierr = VecRestoreArray(uz.z, &z_m); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // ComputeGridVorticityX
+} // PetibmComputeGridVorticityX
 
 
 /*! Computes the vorticity in the x-direction.
  *
  * First-order.
  *
- * \param uy Field structure; velocity in the y-direction.
- * \param uz Field structure; velocity in the z-direction.
- * \param wx Field of the x-vorticity (passed by reference).
+ * \param uy PetibmField structure; velocity in the y-direction.
+ * \param uz PetibmField structure; velocity in the z-direction.
+ * \param wx PetibmField of the x-vorticity (passed by reference).
  */
-PetscErrorCode ComputeVorticityX(Field uy, Field uz, Field &wx)
+PetscErrorCode PetibmComputeFieldVorticityX(
+	PetibmField uy, PetibmField uz, PetibmField &wx)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -253,4 +257,4 @@ PetscErrorCode ComputeVorticityX(Field uy, Field uz, Field &wx)
 	ierr = DMDAVecRestoreArray(wx.da, wx.global, &wx_a); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // FieldComputeVorticityX
+} // PetibmComputeFieldVorticityX

@@ -3,9 +3,12 @@
  */
 
 #include <iomanip>
+#include <iostream>
+
 #include <petscsys.h>
 #include <petscdmda.h>
 
+#include "petibm-utilities/misc.hpp"
 #include "petibm-utilities/field.hpp"
 #include "petibm-utilities/vorticity.hpp"
 
@@ -17,17 +20,16 @@ int main(int argc, char **argv)
 	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
 
 	// parse command-line options
-	std::string directory(".");
-	char dir[PETSC_MAX_PATH_LEN];
-	PetscBool found;
-	ierr = PetscOptionsGetString(
-		nullptr, nullptr, "-directory", dir, sizeof(dir), &found); CHKERRQ(ierr);
-	if (found)
-	  directory = dir;
+	std::string directory;
+	ierr = PetibmGetDirectory(&directory); CHKERRQ(ierr);
+	ierr = PetscPrintf(PETSC_COMM_WORLD,
+	                   "[INFO] directory: %s\n",
+	                   directory.c_str()); CHKERRQ(ierr);
 
 	PetscInt nstart = 0,
 	         nend = 0,
 	         nstep = 1;
+	PetscBool found;
 	ierr = PetscOptionsGetInt(
 		nullptr, nullptr, "-nstart", &nstart, &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetInt(
@@ -42,7 +44,8 @@ int main(int argc, char **argv)
 	ierr = PetscOptionsGetInt(
 		nullptr, nullptr, "-ny", &ny, &found); CHKERRQ(ierr);
 
-	PetscBool isPeriodic_x, isPeriodic_y;
+	PetscBool isPeriodic_x = PETSC_FALSE,
+	          isPeriodic_y = PETSC_FALSE;
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-periodic_x", &isPeriodic_x, nullptr); CHKERRQ(ierr);
 	ierr = PetscOptionsGetBool(
@@ -52,9 +55,9 @@ int main(int argc, char **argv)
 	               bType_y;
 	bType_x = (isPeriodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	bType_y = (isPeriodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	
+
 	// create DMDA for phi
-	Field phi;
+	PetibmField phi;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_STAR,
@@ -65,7 +68,7 @@ int main(int argc, char **argv)
 		(PetscObject) phi.da, nullptr, "-phi_dmda_view"); CHKERRQ(ierr);
 
 	// create DMDA objects for velocity components from DMDA object for pressure
-	Field ux, uy;
+	PetibmField ux, uy;
 	PetscInt numX, numY;
 	const PetscInt *plx, *ply;
 	ierr = DMDAGetOwnershipRanges(phi.da, &plx, &ply, nullptr); CHKERRQ(ierr);
@@ -120,18 +123,18 @@ int main(int argc, char **argv)
 	ierr = PetscFree(vlx); CHKERRQ(ierr);
 	ierr = PetscFree(vly); CHKERRQ(ierr);
 
-	ierr = FieldInitialize(ux); CHKERRQ(ierr);
-	ierr = FieldInitialize(uy); CHKERRQ(ierr);
-	ierr = FieldInitialize(phi); CHKERRQ(ierr);
+	ierr = PetibmFieldInitialize(ux); CHKERRQ(ierr);
+	ierr = PetibmFieldInitialize(uy); CHKERRQ(ierr);
+	ierr = PetibmFieldInitialize(phi); CHKERRQ(ierr);
 
 	// read grids
 	std::string gridsDirectory(directory + "/grids");
-	ierr = FieldReadGrid(gridsDirectory + "/staggered-x.h5", ux); CHKERRQ(ierr);
-	ierr = FieldReadGrid(gridsDirectory + "/staggered-y.h5", uy); CHKERRQ(ierr);
-	ierr = FieldReadGrid(gridsDirectory + "/cell-centered.h5", phi); CHKERRQ(ierr);
+	ierr = PetibmFieldReadGrid(gridsDirectory + "/staggered-x.h5", ux); CHKERRQ(ierr);
+	ierr = PetibmFieldReadGrid(gridsDirectory + "/staggered-y.h5", uy); CHKERRQ(ierr);
+	ierr = PetibmFieldReadGrid(gridsDirectory + "/cell-centered.h5", phi); CHKERRQ(ierr);
 
 	// create z-vorticity field
-	Field wz;
+	PetibmField wz;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_STAR,
@@ -140,14 +143,14 @@ int main(int argc, char **argv)
 	                    &wz.da); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
 		(PetscObject) wz.da, nullptr, "-wz_dmda_view"); CHKERRQ(ierr);
-	ierr = FieldInitialize(wz); CHKERRQ(ierr);
-	ierr = ComputeGridVorticityZ(ux, uy, wz); CHKERRQ(ierr);
+	ierr = PetibmFieldInitialize(wz); CHKERRQ(ierr);
+	ierr = PetibmComputeGridVorticityZ(ux, uy, wz); CHKERRQ(ierr);
 
 	PetscMPIInt rank;
 	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
 	if (rank == 0)
 	{
-	  ierr = FieldWriteGrid(gridsDirectory + "/wz.h5", wz); CHKERRQ(ierr);
+	  ierr = PetibmFieldWriteGrid(gridsDirectory + "/wz.h5", wz); CHKERRQ(ierr);
 	}
 
 	for (PetscInt ite=nstart; ite<=nend; ite+=nstep)
@@ -159,18 +162,18 @@ int main(int argc, char **argv)
 	  std::string folder(ss.str());
 
 	  // read values
-	  ierr = FieldReadValues(folder + "/ux.h5", "ux", ux); CHKERRQ(ierr);
-	  ierr = FieldReadValues(folder + "/uy.h5", "uy", uy); CHKERRQ(ierr);
+	  ierr = PetibmFieldReadValues(folder + "/ux.h5", "ux", ux); CHKERRQ(ierr);
+	  ierr = PetibmFieldReadValues(folder + "/uy.h5", "uy", uy); CHKERRQ(ierr);
 
 	  // compute the z-vorticity
-	  ierr = ComputeVorticityZ(ux, uy, wz); CHKERRQ(ierr);
-	  ierr = FieldWriteValues(folder + "/wz.h5", "wz", wz); CHKERRQ(ierr);
+	  ierr = PetibmComputeFieldVorticityZ(ux, uy, wz); CHKERRQ(ierr);
+	  ierr = PetibmFieldWriteValues(folder + "/wz.h5", "wz", wz); CHKERRQ(ierr);
 	}
 
-	ierr = FieldDestroy(ux); CHKERRQ(ierr);
-	ierr = FieldDestroy(uy); CHKERRQ(ierr);
-	ierr = FieldDestroy(phi); CHKERRQ(ierr);
-	ierr = FieldDestroy(wz); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(ux); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(uy); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(phi); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(wz); CHKERRQ(ierr);
 	ierr = PetscFinalize(); CHKERRQ(ierr);
 	return 0;
 } // main

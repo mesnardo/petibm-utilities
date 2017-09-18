@@ -1,4 +1,4 @@
-/*! Definition of the structure Field.
+/*! Definition of the structure PetibmField.
  * \file field.hpp
  */
 
@@ -13,50 +13,50 @@ typedef struct
   DM da;
   Vec x, y, z;
   Vec global, local;
-} Field;
+} PetibmField;
 
-/*! Initializes a Field structure.
+/*! Initializes a PetibmField structure.
  *
  * Creates the vectors based on the DMDA object.
  *
- * \param field The Field structure to initialize (passed by reference).
+ * \param field The PetibmField structure to initialize (passed by reference).
  */
-PetscErrorCode FieldInitialize(Field &field);
+PetscErrorCode PetibmFieldInitialize(PetibmField &field);
 
-/*! Destroys the PETSc objects of a Field structure.
+/*! Destroys the PETSc objects of a PetibmField structure.
  *
- * \param field The Field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldDestroy(Field &field);
+PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 
 /*! Reads the field values from a HDF5 file.
  *
  * \param filePath Path of the file to read.
  * \param name The name of the field.
- * \param field The field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldReadValues(
-	std::string filePath, std::string name, Field &field);
+PetscErrorCode PetibmFieldReadValues(
+	std::string filePath, std::string name, PetibmField &field);
 
 /*! Reads a HDF5 grid file for a given field.
  *
  * \param filePath Path of the grid file to read.
- * \param field The field structure (passed by reference).
+ * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode FieldReadGrid(std::string filePath, Field &field);
+PetscErrorCode PetibmFieldReadGrid(std::string filePath, PetibmField &field);
 
 /*! Writes a grid into a HDF5 file.
  *
  * \param filePath Path of the file to write into.
- * \param field Field structure that contains the grid.
+ * \param field PetibmField structure that contains the grid.
  */
-PetscErrorCode FieldWriteGrid(std::string filePath, Field field);
+PetscErrorCode PetibmFieldWriteGrid(std::string filePath, PetibmField field);
 
 /*! Writes the field values into a HDF5 file.
  *
  * \param filePath Path of the file to write into.
  * \param name Name of the field.
- * \param field Field structure.
+ * \param field PetibmField structure.
  */
-PetscErrorCode FieldWriteValues(
-	std::string filePath, std::string name, Field field);
+PetscErrorCode PetibmFieldWriteValues(
+	std::string filePath, std::string name, PetibmField field);
