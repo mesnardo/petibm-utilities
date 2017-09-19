@@ -27,7 +27,7 @@ PetscErrorCode PetibmFieldInitialize(PetibmField &field)
   ierr = VecCreateSeq(PETSC_COMM_SELF, info.my, &field.y); CHKERRQ(ierr);
   if (info.dim == 3)
   {
-  	ierr = VecCreateSeq(PETSC_COMM_SELF, info.mz, &field.y); CHKERRQ(ierr);
+  	ierr = VecCreateSeq(PETSC_COMM_SELF, info.mz, &field.z); CHKERRQ(ierr);
   }
 
   PetscFunctionReturn(0);
