@@ -2,7 +2,7 @@
  * \file misc.cpp
  */
 
-#include "petibm-utilities/misc.hpp"
+#include "petibm-utilities/misc.h"
 
 
 /*! Gets the directory from the command-line.
@@ -23,3 +23,39 @@ PetscErrorCode PetibmGetDirectory(std::string *directory)
 
 	PetscFunctionReturn(0);
 } // PetibmGetDirectory
+
+
+/*! Finds index of closest point on left side.
+ *
+ * \param x_i Point for which we look the neighbor.
+ * \param x Vec that contains all neighbors.
+ * \param index Index of the closest neighbor.
+ * \param found Set to PETSC_TRUE is closest neighbor found.
+ */
+PetscErrorCode PetibmGetNeighborIndex1D(
+	const PetscReal x_i, const Vec x, PetscInt *index, PetscBool *found)
+{
+	PetscErrorCode ierr;
+	PetscReal *x_a;
+	PetscInt i, i_start = 0;
+	PetscInt n;
+
+	PetscFunctionBeginUser;
+
+	ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
+	ierr = VecGetArray(x, &x_a); CHKERRQ(ierr);
+	if (index)
+		i_start = *index;
+	for (i=i_start; i<n-1; i++)
+	{
+		if (x_a[i] <= x_i and x_i < x_a[i+1])
+		{
+			*index = i;
+			*found = PETSC_TRUE;
+			break;
+		}
+	}
+	ierr = VecRestoreArray(x, &x_a); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmGetNeighborIndex1D

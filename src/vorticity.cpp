@@ -2,7 +2,7 @@
  * \file vorticity.cpp
  */
 
-#include "petibm-utilities/vorticity.hpp"
+#include "petibm-utilities/vorticity.h"
 
 
 /*! Computes the gridlines for the vorticity in the z-direction.

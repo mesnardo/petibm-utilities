@@ -8,9 +8,9 @@
 #include <petscsys.h>
 #include <petscdmda.h>
 
-#include "petibm-utilities/misc.hpp"
-#include "petibm-utilities/field.hpp"
-#include "petibm-utilities/vorticity.hpp"
+#include "petibm-utilities/misc.h"
+#include "petibm-utilities/field.h"
+#include "petibm-utilities/vorticity.h"
 
 
 int main(int argc, char **argv)

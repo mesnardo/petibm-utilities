@@ -7,7 +7,7 @@
 #include <petscsys.h>
 #include <petscdmda.h>
 
-#include "petibm-utilities/field.hpp"
+#include "petibm-utilities/field.h"
 
 
 /*! Computes the gridlines for the vorticity in the z-direction.

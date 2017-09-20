@@ -1,3 +1,4 @@
-nobase_include_HEADERS = petibm-utilities/field.hpp \
-                         petibm-utilities/misc.hpp \
-                         petibm-utilities/vorticity.hpp
+nobase_include_HEADERS = petibm-utilities/field.h \
+                         petibm-utilities/mesh.h \
+                         petibm-utilities/misc.h \
+                         petibm-utilities/vorticity.h

@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libpetibm-utilities.la
 
 libpetibm_utilities_la_SOURCES = field.cpp \
+                                 mesh.cpp \
                                  misc.cpp \
                                  vorticity.cpp
 
