@@ -13,7 +13,10 @@ A collection of scripts and C++ codes to pre- and post-process the numerical sol
 ## Contents
 ---
 
-* `petibm-vorticity2d` (compute the 2D vorticity field from the 2D velocity field)
+* `petibm-vorticity2d` (compute the vorticity field from the 2D velocity field)
+* `petibm-vorticity3d` (compute the vorticity field from the 3D velocity field)
+* `petibm-interpolation2d` (interpolate the 2D field values from one grid to another)
+* `petibm-interpolation3d` (interpolate the 3D field values from one grid to another)
 
 
 ## Installation
