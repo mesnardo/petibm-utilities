@@ -1,2 +1,2 @@
 SUBDIRS = vorticity \
-          interpolate
+          interpolation

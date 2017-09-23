@@ -59,7 +59,7 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  applications/Makefile
                  applications/vorticity/Makefile
-                 applications/interpolate/Makefile])
+                 applications/interpolation/Makefile])
 
 # output message
 AC_OUTPUT
