@@ -190,9 +190,10 @@ PetscErrorCode PetibmFieldWriteValues(
  *
  * \param fieldA PetibmField to be interpolated.
  * \param fieldB PetibmField on which the solution is interpolated.
+ * \param bc_value Value to use near boundary when no neighbor is found.
  */
 PetscErrorCode PetibmFieldInterpolate2D(
-	const PetibmField fieldA, PetibmField &fieldB)
+	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -226,12 +227,19 @@ PetscErrorCode PetibmFieldInterpolate2D(
 		{
 			ierr = PetibmGetNeighborIndex1D(
 				xB[i], fieldA.x, &I, &found_x); CHKERRQ(ierr);
-			v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J][I] +
-			      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J][I+1]);
-			v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J+1][I] +
-			      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J+1][I+1]);
-			vB[j][i] = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
-			            (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
+			if (found_x and found_y)
+			{	
+				v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J][I+1]);
+				v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J+1][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J+1][I+1]);
+				vB[j][i] = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
+				            (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
+			}
+			else
+			{
+				vB[j][i] = bc_value;
+			}
 		}
 	}
 	ierr = VecRestoreArray(fieldA.x, &xA); CHKERRQ(ierr);
@@ -249,9 +257,10 @@ PetscErrorCode PetibmFieldInterpolate2D(
  *
  * \param fieldA PetibmField to be interpolated.
  * \param fieldB PetibmField on which the solution is interpolated.
+ * \param bc_value Value to use near boundary when no neighbor is found.
  */
 PetscErrorCode PetibmFieldInterpolate3D(
-	const PetibmField fieldA, PetibmField &fieldB)
+	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -292,20 +301,27 @@ PetscErrorCode PetibmFieldInterpolate3D(
 			{
 				ierr = PetibmGetNeighborIndex1D(
 					xB[i], fieldA.x, &I, &found_x); CHKERRQ(ierr);
-				v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J][I+1]);
-				v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J+1][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J+1][I+1]);
-				v3 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J][I+1]);
-				v4 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I+1]);
-				v12 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
-				       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
-				v34 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v3 +
-				       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v4);
-				vB[k][j][i] = ((zA[K+1] - zB[k]) / (zA[K+1] - zA[K]) * v12 +
-				              (zB[k] - zA[K]) / (zA[K+1] - zA[K]) * v34);
+				if (found_x and found_y and found_z)
+				{
+					v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J][I] +
+					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J][I+1]);
+					v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J+1][I] +
+					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J+1][I+1]);
+					v3 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J][I] +
+					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J][I+1]);
+					v4 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I] +
+					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I+1]);
+					v12 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
+					       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
+					v34 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v3 +
+					       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v4);
+					vB[k][j][i] = ((zA[K+1] - zB[k]) / (zA[K+1] - zA[K]) * v12 +
+					              (zB[k] - zA[K]) / (zA[K+1] - zA[K]) * v34);
+				}
+				else
+				{
+					vB[k][j][i] = bc_value;
+				}
 			}
 		}
 	}

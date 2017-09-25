@@ -102,11 +102,11 @@ int main(int argc, char **argv)
 	{
 		if (ite % 4 == 0 or ite % 4 == 1)
 		{
-			ierr = PetibmFieldInterpolate2D(fieldA, fieldB); CHKERRQ(ierr);
+			ierr = PetibmFieldInterpolate2D(fieldA, fieldB, 1.2345); CHKERRQ(ierr);
 		}
 		else
 		{
-			ierr = PetibmFieldInterpolate2D(fieldB, fieldA); CHKERRQ(ierr);
+			ierr = PetibmFieldInterpolate2D(fieldB, fieldA, 1.2345); CHKERRQ(ierr);
 		}
 	}		
 

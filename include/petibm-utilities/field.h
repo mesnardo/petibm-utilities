@@ -72,17 +72,19 @@ PetscErrorCode PetibmFieldWriteValues(
  *
  * \param fieldA PetibmField to be interpolated.
  * \param fieldB PetibmField on which the solution is interpolated.
+ * \param bc_value Value to use near boundary when no neighbor is found.
  */
 PetscErrorCode PetibmFieldInterpolate2D(
-	const PetibmField fieldA, PetibmField &fieldB);
+	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value);
 
 /*! Interpolates 3D field values from one mesh to another.
  *
  * \param fieldA PetibmField to be interpolated.
  * \param fieldB PetibmField on which the solution is interpolated.
+ * \param bc_value Value to use near boundary when no neighbor is found.
  */
 PetscErrorCode PetibmFieldInterpolate3D(
-	const PetibmField fieldA, PetibmField &fieldB);
+	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value);
 
 /*! Sets the value at external ghost points.
  *

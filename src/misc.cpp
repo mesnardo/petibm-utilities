@@ -37,15 +37,13 @@ PetscErrorCode PetibmGetNeighborIndex1D(
 {
 	PetscErrorCode ierr;
 	PetscReal *x_a;
-	PetscInt i, i_start = 0;
+	PetscInt i, i_start = *index;
 	PetscInt n;
 
 	PetscFunctionBeginUser;
 
 	ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
 	ierr = VecGetArray(x, &x_a); CHKERRQ(ierr);
-	if (index)
-		i_start = *index;
 	for (i=i_start; i<n-1; i++)
 	{
 		if (x_a[i] <= x_i and x_i < x_a[i+1])

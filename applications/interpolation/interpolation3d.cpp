@@ -70,7 +70,8 @@ int main(int argc, char **argv)
 	ierr = PetibmFieldExternalGhostPointsSet(
 		fieldB, fieldBInfo.bcValue); CHKERRQ(ierr);
 
-	ierr = PetibmFieldInterpolate3D(fieldA, fieldB); CHKERRQ(ierr);
+	ierr = PetibmFieldInterpolate3D(
+		fieldA, fieldB, fieldBInfo.bcValue); CHKERRQ(ierr);
 
 	ierr = PetibmFieldWriteValues(
 		fieldBInfo.path, fieldBInfo.name, fieldB); CHKERRQ(ierr);
