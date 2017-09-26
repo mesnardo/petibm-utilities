@@ -7,25 +7,33 @@
 #include <petscsys.h>
 #include <petscdmda.h>
 
+#include "petibm-utilities/grid.h"
+
 
 typedef struct
 {
-  DM da;
-  Vec x, y, z;
-  Vec global, local;
+	PetibmGrid grid;
+	DM da;
+	Vec global, local;
 } PetibmField;
 
 typedef struct
 {
 	char path[PETSC_MAX_PATH_LEN];
 	char name[PETSC_MAX_PATH_LEN];
-	PetscReal bcValue = 0.0;
-} PetibmFieldInfo;
+	PetscReal bc_value = 0.0;
+} PetibmFieldCtx;
+
+/*! Gets options from command-line or config file.
+ *
+ * \param prefix String to prepend to options.
+ * \param ctx The PetibmFieldCtx structure to fill.
+ */
+PetscErrorCode PetibmFieldGetOptions(
+	const char prefix[], PetibmFieldCtx *ctx);
 
 /*! Initializes a PetibmField structure.
- *
- * Creates the vectors based on the DMDA object.
- *
+ *.
  * \param field The PetibmField structure to initialize (passed by reference).
  */
 PetscErrorCode PetibmFieldInitialize(PetibmField &field);
@@ -36,37 +44,23 @@ PetscErrorCode PetibmFieldInitialize(PetibmField &field);
  */
 PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 
-/*! Reads the field values from a HDF5 file.
+/*! Reads the field values from file.
  *
- * \param filePath Path of the file to read.
+ * \param filepath Path of the input file.
  * \param name The name of the field.
  * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode PetibmFieldReadValues(
-	std::string filePath, std::string name, PetibmField &field);
+PetscErrorCode PetibmFieldHDF5Read(
+	const std::string filepath, const std::string name, PetibmField &field);
 
-/*! Reads a HDF5 grid file for a given field.
+/*! Writes the field values into file.
  *
- * \param filePath Path of the grid file to read.
- * \param field The PetibmField structure (passed by reference).
- */
-PetscErrorCode PetibmFieldReadGrid(std::string filePath, PetibmField &field);
-
-/*! Writes a grid into a HDF5 file.
- *
- * \param filePath Path of the file to write into.
- * \param field PetibmField structure that contains the grid.
- */
-PetscErrorCode PetibmFieldWriteGrid(std::string filePath, PetibmField field);
-
-/*! Writes the field values into a HDF5 file.
- *
- * \param filePath Path of the file to write into.
+ * \param filepath Path of the output file.
  * \param name Name of the field.
  * \param field PetibmField structure.
  */
-PetscErrorCode PetibmFieldWriteValues(
-	std::string filePath, std::string name, PetibmField field);
+PetscErrorCode PetibmFieldHDF5Write(
+	const std::string filepath, const std::string name, const PetibmField field);
 
 /*! Interpolates 2D field values from one mesh to another.
  *
@@ -93,11 +87,3 @@ PetscErrorCode PetibmFieldInterpolate3D(
  */
 PetscErrorCode  PetibmFieldExternalGhostPointsSet(
 	PetibmField field, PetscReal value);
-
-/*! Gets options from command-line or config file.
- *
- * \param prefix String to prepend to options.
- * \param info The PetibmFieldInfo structure to fill.
- */
-PetscErrorCode PetibmFieldInfoGetOptions(
-	const char prefix[], PetibmFieldInfo *info);

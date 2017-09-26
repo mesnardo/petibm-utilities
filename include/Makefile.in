@@ -298,8 +298,9 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 nobase_include_HEADERS = petibm-utilities/field.h \
-                         petibm-utilities/mesh.h \
+                         petibm-utilities/grid.h \
                          petibm-utilities/misc.h \
+                         petibm-utilities/timestep.h \
                          petibm-utilities/vorticity.h
 
 all: all-am

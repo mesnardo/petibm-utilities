@@ -8,6 +8,38 @@
 #include "petibm-utilities/misc.h"
 
 
+/*! Gets options from command-line or config file.
+ *
+ * \param prefix String to prepend to options.
+ * \param ctx The PetibmFieldCtx structure to fill.
+ */
+PetscErrorCode PetibmFieldGetOptions(
+	const char prefix[], PetibmFieldCtx *ctx)
+{
+	PetscErrorCode ierr;
+	char path[PETSC_MAX_PATH_LEN];
+	PetscBool found;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
+	                             path, sizeof(path), &found); CHKERRQ(ierr);
+	if (found)
+	{
+		ierr = PetscOptionsInsertFile(
+			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
+	}
+	ierr = PetscOptionsGetString(nullptr, prefix, "-path", ctx->path,
+	                             sizeof(ctx->path), &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetString(nullptr, prefix, "-name", ctx->name,
+	                             sizeof(ctx->name), &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetReal(
+		nullptr, prefix, "-bc_value", &ctx->bc_value, &found); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldGetOptions
+
+
 /*! Initializes a PetibmField structure.
  *
  * Creates the vectors based on the DMDA object.
@@ -17,19 +49,11 @@
 PetscErrorCode PetibmFieldInitialize(PetibmField &field)
 {
   PetscErrorCode ierr;
-  DMDALocalInfo info;
 
   PetscFunctionBeginUser;
 
   ierr = DMCreateGlobalVector(field.da, &field.global); CHKERRQ(ierr);
-  ierr = DMCreateLocalVector(field.da, &field.local);
-  ierr = DMDAGetLocalInfo(field.da, &info);
-  ierr = VecCreateSeq(PETSC_COMM_SELF, info.mx, &field.x); CHKERRQ(ierr);
-  ierr = VecCreateSeq(PETSC_COMM_SELF, info.my, &field.y); CHKERRQ(ierr);
-  if (info.dim == 3)
-  {
-  	ierr = VecCreateSeq(PETSC_COMM_SELF, info.mz, &field.z); CHKERRQ(ierr);
-  }
+  ierr = DMCreateLocalVector(field.da, &field.local); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 } // PetibmFieldInitialize
@@ -42,17 +66,10 @@ PetscErrorCode PetibmFieldInitialize(PetibmField &field)
 PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 {
 	PetscErrorCode ierr;
-	DMDALocalInfo info;
 
 	PetscFunctionBeginUser;
 
-	ierr = DMDAGetLocalInfo(field.da, &info);
-	ierr = VecDestroy(&field.x); CHKERRQ(ierr);
-	ierr = VecDestroy(&field.y); CHKERRQ(ierr);
-	if (info.dim == 3)
-	{
-		ierr = VecDestroy(&field.z); CHKERRQ(ierr);
-	}
+	ierr = PetibmGridDestroy(field.grid); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.global); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.local); CHKERRQ(ierr);
 	ierr = DMDestroy(&field.da); CHKERRQ(ierr);
@@ -61,14 +78,14 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 } // PetibmFieldDestroy
 
 
-/*! Reads the field values from a HDF5 file.
+/*! Reads the field values from file.
  *
- * \param filePath Path of the file to read.
+ * \param filepath Path of the input file.
  * \param name The name of the field.
  * \param field The PetibmField structure (passed by reference).
  */
-PetscErrorCode PetibmFieldReadValues(
-	std::string filePath, std::string name, PetibmField &field)
+PetscErrorCode PetibmFieldHDF5Read(
+	std::string filepath, std::string name, PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -79,94 +96,22 @@ PetscErrorCode PetibmFieldReadValues(
 	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_READ); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetName(viewer, filePath.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
 	ierr = VecLoad(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // PetibmFieldReadValues
+} // PetibmFieldHDF5Read
 
 
-/*! Reads a HDF5 grid file for a given field.
+/*! Writes the field values into file.
  *
- * \param filePath Path of the grid file to read.
- * \param field The PetibmField structure (passed by reference).
- */
-PetscErrorCode PetibmFieldReadGrid(std::string filePath, PetibmField &field)
-{
-	PetscErrorCode ierr;
-	PetscViewer viewer;
-	DMDALocalInfo info;
-
-	PetscFunctionBeginUser;
-
-	ierr = DMDAGetLocalInfo(field.da, &info); CHKERRQ(ierr);
-
-	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filePath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
-	// read x-stations
-	ierr = PetscObjectSetName((PetscObject) field.x, "x"); CHKERRQ(ierr);
-	ierr = VecLoad(field.x, viewer); CHKERRQ(ierr);
-	// read y-stations
-	ierr = PetscObjectSetName((PetscObject) field.y, "y"); CHKERRQ(ierr);
-	ierr = VecLoad(field.y, viewer); CHKERRQ(ierr);
-	if (info.dim == 3)
-	{
-		// read z-stations
-		ierr = PetscObjectSetName((PetscObject) field.z, "z"); CHKERRQ(ierr);
-		ierr = VecLoad(field.z, viewer); CHKERRQ(ierr);
-	}
-
-	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmFieldReadGrid
-
-
-/*! Writes a grid into a HDF5 file.
- *
- * \param filePath Path of the file to write into.
- * \param field PetibmField structure that contains the grid.
- */
-PetscErrorCode PetibmFieldWriteGrid(std::string filePath, PetibmField field)
-{
-	PetscErrorCode ierr;
-	PetscViewer viewer;
-	DMDALocalInfo info;
-
-	PetscFunctionBeginUser;
-
-	ierr = DMDAGetLocalInfo(field.da, &info); CHKERRQ(ierr);
-
-	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filePath.c_str(), FILE_MODE_WRITE, &viewer); CHKERRQ(ierr);
-	// read x-stations
-	ierr = PetscObjectSetName((PetscObject) field.x, "x"); CHKERRQ(ierr);
-	ierr = VecView(field.x, viewer); CHKERRQ(ierr);
-	// read y-stations
-	ierr = PetscObjectSetName((PetscObject) field.y, "y"); CHKERRQ(ierr);
-	ierr = VecView(field.y, viewer); CHKERRQ(ierr);
-	if (info.dim == 3)
-	{
-		// read z-stations
-		ierr = PetscObjectSetName((PetscObject) field.z, "z"); CHKERRQ(ierr);
-		ierr = VecView(field.z, viewer); CHKERRQ(ierr);
-	}
-
-	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmFieldWriteGrid
-
-
-/*! Writes the field values into a HDF5 file.
- *
- * \param filePath Path of the file to write into.
+ * \param filepath Path of the output file.
  * \param name Name of the field.
  * \param field PetibmField structure.
  */
-PetscErrorCode PetibmFieldWriteValues(
-	std::string filePath, std::string name, PetibmField field)
+PetscErrorCode PetibmFieldHDF5Write(
+	std::string filepath, std::string name, PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -178,12 +123,12 @@ PetscErrorCode PetibmFieldWriteValues(
 	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_WRITE); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetName(viewer, filePath.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
 	ierr = VecView(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // PetibmFieldWriteValues
+} // PetibmFieldHDF5Write
 
 
 /*! Interpolates 2D field values from one mesh to another.
@@ -214,19 +159,19 @@ PetscErrorCode PetibmFieldInterpolate2D(
 
 	ierr = DMDAVecGetArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.y, &yA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.y, &yB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
 	for (j=info.ys; j<info.ys+info.ym; j++)
 	{
 		ierr = PetibmGetNeighborIndex1D(
-			yB[j], fieldA.y, &J, &found_y); CHKERRQ(ierr);
+			yB[j], fieldA.grid.y, &J, &found_y); CHKERRQ(ierr);
 		I = 0;
 		for (i=info.xs; i<info.xs+info.xm;i++)
 		{
 			ierr = PetibmGetNeighborIndex1D(
-				xB[i], fieldA.x, &I, &found_x); CHKERRQ(ierr);
+				xB[i], fieldA.grid.x, &I, &found_x); CHKERRQ(ierr);
 			if (found_x and found_y)
 			{	
 				v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J][I] +
@@ -242,10 +187,10 @@ PetscErrorCode PetibmFieldInterpolate2D(
 			}
 		}
 	}
-	ierr = VecRestoreArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.y, &yA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.y, &yB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
@@ -281,26 +226,26 @@ PetscErrorCode PetibmFieldInterpolate3D(
 
 	ierr = DMDAVecGetArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.y, &yA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.z, &zA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.y, &yB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.z, &zB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.z, &zA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.z, &zB); CHKERRQ(ierr);
 	for (k=info.zs; k<info.zs+info.zm; k++)
 	{
 		ierr = PetibmGetNeighborIndex1D(
-			zB[k], fieldA.z, &K, &found_z); CHKERRQ(ierr);
+			zB[k], fieldA.grid.z, &K, &found_z); CHKERRQ(ierr);
 		J = 0;
 		for (j=info.ys; j<info.ys+info.ym; j++)
 		{
 			ierr = PetibmGetNeighborIndex1D(
-				yB[j], fieldA.y, &J, &found_y); CHKERRQ(ierr);
+				yB[j], fieldA.grid.y, &J, &found_y); CHKERRQ(ierr);
 			I = 0;
 			for (i=info.xs; i<info.xs+info.xm;i++)
 			{
 				ierr = PetibmGetNeighborIndex1D(
-					xB[i], fieldA.x, &I, &found_x); CHKERRQ(ierr);
+					xB[i], fieldA.grid.x, &I, &found_x); CHKERRQ(ierr);
 				if (found_x and found_y and found_z)
 				{
 					v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J][I] +
@@ -325,12 +270,12 @@ PetscErrorCode PetibmFieldInterpolate3D(
 			}
 		}
 	}
-	ierr = VecRestoreArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.y, &yA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.z, &zA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.y, &yB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.z, &zB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.z, &zA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.z, &zB); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
@@ -399,35 +344,3 @@ PetscErrorCode  PetibmFieldExternalGhostPointsSet(
 
 	PetscFunctionReturn(0);
 } // PetibmFieldExternalGhostPointsSet
-
-
-/*! Gets options from command-line or config file.
- *
- * \param prefix String to prepend to options.
- * \param info The PetibmFieldInfo structure to fill.
- */
-PetscErrorCode PetibmFieldInfoGetOptions(
-	const char prefix[], PetibmFieldInfo *info)
-{
-	PetscErrorCode ierr;
-	char path[PETSC_MAX_PATH_LEN];
-	PetscBool found;
-
-	PetscFunctionBeginUser;
-
-	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
-	                             path, sizeof(path), &found); CHKERRQ(ierr);
-	if (found)
-	{
-		ierr = PetscOptionsInsertFile(
-			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
-	}
-	ierr = PetscOptionsGetString(nullptr, prefix, "-path", info->path,
-	                             sizeof(info->path), &found); CHKERRQ(ierr);
-	ierr = PetscOptionsGetString(nullptr, prefix, "-name", info->name,
-	                             sizeof(info->name), &found); CHKERRQ(ierr);
-	ierr = PetscOptionsGetReal(
-		nullptr, prefix, "-bc_value", &info->bcValue, &found); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmFieldInfoGetOptions

@@ -1,14 +1,14 @@
 /*! Interpolates the 2D PetIBM solution from one grid to another.
- * \file interpolate2d.cpp
+ * \file interpolation2d.cpp
  */
 
 #include <string>
 
 #include <petscsys.h>
 
-#include "petibm-utilities/mesh.h"
-#include "petibm-utilities/misc.h"
 #include "petibm-utilities/field.h"
+#include "petibm-utilities/grid.h"
+#include "petibm-utilities/misc.h"
 
 
 int main(int argc, char **argv)
@@ -19,55 +19,55 @@ int main(int argc, char **argv)
 
 	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
 
-	PetibmMeshInfo meshAInfo;
-	PetibmFieldInfo fieldAInfo;
-	ierr = PetibmMeshInfoGetOptions("fieldA_", &meshAInfo); CHKERRQ(ierr);
-	ierr = PetibmFieldInfoGetOptions("fieldA_", &fieldAInfo); CHKERRQ(ierr);
-
-	PetibmMeshInfo meshBInfo;
-	PetibmFieldInfo fieldBInfo;
-	ierr = PetibmMeshInfoGetOptions("fieldB_", &meshBInfo); CHKERRQ(ierr);
-	ierr = PetibmFieldInfoGetOptions("fieldB_", &fieldBInfo); CHKERRQ(ierr);
-
 	PetibmField fieldA;
-	bType_x = (meshAInfo.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (meshAInfo.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	PetibmFieldCtx fieldACtx;
+	PetibmGridCtx gridACtx;
+	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
+	ierr = PetibmFieldGetOptions("fieldA_", &fieldACtx); CHKERRQ(ierr);
+	bType_x = (gridACtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (gridACtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_BOX,
-	                    meshAInfo.nx, meshAInfo.ny,
+	                    gridACtx.nx, gridACtx.ny,
 	                    PETSC_DECIDE, PETSC_DECIDE, 1, 1, nullptr, nullptr,
 	                    &fieldA.da); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
 		(PetscObject) fieldA.da, nullptr, "-fieldA_dmda_view"); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldA); CHKERRQ(ierr);
-	ierr = PetibmFieldReadGrid(meshAInfo.path, fieldA); CHKERRQ(ierr);
-	ierr = PetibmFieldReadValues(
-		fieldAInfo.path, fieldAInfo.name, fieldA); CHKERRQ(ierr);
+	ierr = PetibmGridInitialize(gridACtx, fieldA.grid); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(gridACtx.path, fieldA.grid); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Read(
+		fieldACtx.path, fieldACtx.name, fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldExternalGhostPointsSet(
-		fieldA, fieldAInfo.bcValue); CHKERRQ(ierr);
+		fieldA, fieldACtx.bc_value); CHKERRQ(ierr);
 
 	PetibmField fieldB;
-	bType_x = (meshBInfo.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (meshBInfo.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	PetibmFieldCtx fieldBCtx;
+	PetibmGridCtx gridBCtx;
+	ierr = PetibmGridGetOptions("gridB_", &gridBCtx); CHKERRQ(ierr);
+	ierr = PetibmFieldGetOptions("fieldB_", &fieldBCtx); CHKERRQ(ierr);
+	bType_x = (gridBCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (gridBCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_BOX,
-	                    meshBInfo.nx, meshBInfo.ny,
+	                    gridBCtx.nx, gridBCtx.ny,
 	                    PETSC_DECIDE, PETSC_DECIDE, 1, 1, nullptr, nullptr,
 	                    &fieldB.da); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
 		(PetscObject) fieldB.da, nullptr, "-fieldB_dmda_view"); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldB); CHKERRQ(ierr);
-	ierr = PetibmFieldReadGrid(meshBInfo.path, fieldB); CHKERRQ(ierr);
+	ierr = PetibmGridInitialize(gridBCtx, fieldB.grid); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(gridBCtx.path, fieldB.grid); CHKERRQ(ierr);
 	ierr = PetibmFieldExternalGhostPointsSet(
-		fieldB, fieldBInfo.bcValue); CHKERRQ(ierr);
+		fieldB, fieldBCtx.bc_value); CHKERRQ(ierr);
 
 	ierr = PetibmFieldInterpolate2D(
-		fieldA, fieldB, fieldBInfo.bcValue); CHKERRQ(ierr);
+		fieldA, fieldB, fieldBCtx.bc_value); CHKERRQ(ierr);
 
-	ierr = PetibmFieldWriteValues(
-		fieldBInfo.path, fieldBInfo.name, fieldB); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Write(
+		fieldBCtx.path, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 
 	ierr = PetibmFieldDestroy(fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);

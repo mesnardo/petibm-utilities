@@ -8,44 +8,45 @@
 #include <petscdmda.h>
 
 #include "petibm-utilities/field.h"
+#include "petibm-utilities/grid.h"
 
 
 /*! Computes the gridlines for the vorticity in the z-direction.
  *
- * \param ux PetibmField structure; velocity in the x-direction.
- * \param uy PetibmField structure; velocity in the y-direction.
- * \param wz PetibmField of the z-vorticity (passed by reference).
+ * \param ux PetibmGrid structure for the x-velocity.
+ * \param uy PetibmGrid structure for the y-velocity.
+ * \param wz PetibmGrid structure for the z-vorticity (passed by reference).
  */
-PetscErrorCode PetibmComputeGridVorticityZ(
-	PetibmField ux, PetibmField uy, PetibmField &wz);
+PetscErrorCode PetibmVorticityZComputeGrid(
+	const PetibmGrid ux, const PetibmGrid uy, PetibmGrid &wz);
 
 /*! Computes the vorticity in the z-direction.
  *
  * First-order.
  *
- * \param ux PetibmField structure; velocity in the x-direction.
- * \param uy PetibmField structure; velocity in the y-direction.
- * \param wz PetibmField of the z-vorticity (passed by reference).
+ * \param ux PetibmField structure for the x-velocity.
+ * \param uy PetibmField structure for the y-velocity.
+ * \param wz PetibmField structure for the z-vorticity (passed by reference).
  */
-PetscErrorCode PetibmComputeFieldVorticityZ(
-	PetibmField ux, PetibmField uy, PetibmField &wz);
+PetscErrorCode PetibmVorticityZComputeField(
+	const PetibmField ux, const PetibmField uy, PetibmField &wz);
 
 /*! Computes the gridlines for the vorticity in the x-direction.
  *
- * \param uy PetibmField structure; velocity in the y-direction.
- * \param uz PetibmField structure; velocity in the z-direction.
- * \param wx PetibmField of the x-vorticity (passed by reference).
+ * \param uy PetibmGrid structure for the y-velocity.
+ * \param uz PetibmGrid structure for the z-velocity.
+ * \param wx PetibmGrid structure for the x-vorticity (passed by reference).
  */
-PetscErrorCode PetibmComputeGridVorticityX(
-	PetibmField uy, PetibmField uz, PetibmField &wx);
+PetscErrorCode PetibmVorticityXComputeGrid(
+	const PetibmGrid uy, const PetibmGrid uz, PetibmGrid &wx);
 
 /*! Computes the vorticity in the x-direction.
  *
  * First-order.
  *
- * \param uy PetibmField structure; velocity in the y-direction.
- * \param uz PetibmField structure; velocity in the z-direction.
- * \param wx PetibmField of the x-vorticity (passed by reference).
+ * \param uy PetibmField structure for the y-velocity.
+ * \param uz PetibmField structure for the z-velocity.
+ * \param wx PetibmField structure for the x-vorticity (passed by reference).
  */
-PetscErrorCode PetibmComputeFieldVorticityX(
-	PetibmField uy, PetibmField uz, PetibmField &wx);
+PetscErrorCode PetibmVorticityXComputeField(
+	const PetibmField uy, const PetibmField uz, PetibmField &wx);

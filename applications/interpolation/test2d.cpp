@@ -7,9 +7,9 @@
 
 #include <petscsys.h>
 
-#include "petibm-utilities/mesh.h"
-#include "petibm-utilities/misc.h"
 #include "petibm-utilities/field.h"
+#include "petibm-utilities/grid.h"
+#include "petibm-utilities/misc.h"
 
 
 int main(int argc, char **argv)
@@ -29,26 +29,22 @@ int main(int argc, char **argv)
 	ierr = PetscOptionsGetInt(
 		nullptr, nullptr, "-nt", &nt, &found); CHKERRQ(ierr);
 
-	PetibmMeshInfo meshAInfo;
-	meshAInfo.nx = 8;
-	meshAInfo.ny = 8;
-
-	PetibmMeshInfo meshBInfo;
-	meshBInfo.nx = 4;
-	meshBInfo.ny = 4;
-
 	PetibmField fieldA;
-	bType_x = (meshAInfo.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (meshAInfo.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	PetibmGridCtx gridACtx;
+	gridACtx.nx = 8;
+	gridACtx.ny = 8;
+	bType_x = (gridACtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (gridACtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_BOX,
-	                    meshAInfo.nx, meshAInfo.ny,
+	                    gridACtx.nx, gridACtx.ny,
 	                    PETSC_DECIDE, PETSC_DECIDE, 1, 1, nullptr, nullptr,
 	                    &fieldA.da); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
 		(PetscObject) fieldA.da, nullptr, "-fieldA_dmda_view"); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldA); CHKERRQ(ierr);
+	ierr = PetibmGridInitialize(gridACtx, fieldA.grid); CHKERRQ(ierr);
 	ierr = VecSet(fieldA.global, 1.2345);
 	ierr = DMGlobalToLocalBegin(
 		fieldA.da, fieldA.global, INSERT_VALUES, fieldA.local); CHKERRQ(ierr);
@@ -57,46 +53,52 @@ int main(int argc, char **argv)
 	ierr = PetibmFieldExternalGhostPointsSet(fieldA, 1.2345); CHKERRQ(ierr);
 
 	PetscReal *xA, *yA;
-	ierr = VecGetArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.y, &yA); CHKERRQ(ierr);
-	h = (xend - xstart) * (gammaA - 1.0) / (std::pow(gammaA, meshAInfo.nx) - 1.0);
+	ierr = VecGetArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	h = (xend - xstart) * (gammaA - 1.0) / (std::pow(gammaA, gridACtx.nx) - 1.0);
 	xA[0] = xstart + 0.5 * h;
-	for (i=0; i<meshAInfo.nx-1; i++)
+	for (i=0; i<gridACtx.nx-1; i++)
 		xA[i+1] = xA[i] + h * std::pow(gammaA, i);
-	h = (yend - ystart) * (gammaA - 1.0) / (std::pow(gammaA, meshAInfo.ny) - 1.0);
+	h = (yend - ystart) * (gammaA - 1.0) / (std::pow(gammaA, gridACtx.ny) - 1.0);
 	yA[0] = ystart + 0.5 * h;
-	for (j=0; j<meshAInfo.ny-1; j++)
+	for (j=0; j<gridACtx.ny-1; j++)
 		yA[j+1] = yA[j] + h * std::pow(gammaA, j);
-	ierr = VecRestoreArray(fieldA.x, &xA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.y, &yA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Write("gridA.h5", fieldA.grid); CHKERRQ(ierr);
 
 	PetibmField fieldB;
-	bType_x = (meshBInfo.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (meshBInfo.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	PetibmGridCtx gridBCtx;
+	gridBCtx.nx = 4;
+	gridBCtx.ny = 4;
+	bType_x = (gridBCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (gridBCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	ierr = DMDACreate2d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y,
 	                    DMDA_STENCIL_BOX,
-	                    meshBInfo.nx, meshBInfo.ny,
+	                    gridBCtx.nx, gridBCtx.ny,
 	                    PETSC_DECIDE, PETSC_DECIDE, 1, 1, nullptr, nullptr,
 	                    &fieldB.da); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
 		(PetscObject) fieldB.da, nullptr, "-fieldB_dmda_view"); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldB); CHKERRQ(ierr);
+	ierr = PetibmGridInitialize(gridBCtx, fieldB.grid); CHKERRQ(ierr);
 	ierr = PetibmFieldExternalGhostPointsSet(fieldB, 1.2345); CHKERRQ(ierr);
 
 	PetscReal *xB, *yB;
-	ierr = VecGetArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.y, &yB); CHKERRQ(ierr);
-	h = (xend - xstart) * (gammaB - 1.0) / (std::pow(gammaB, meshBInfo.nx) - 1.0);
+	ierr = VecGetArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecGetArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	h = (xend - xstart) * (gammaB - 1.0) / (std::pow(gammaB, gridBCtx.nx) - 1.0);
 	xB[0] = xstart + 0.5 * h;
-	for (i=0; i<meshBInfo.nx-1; i++)
+	for (i=0; i<gridBCtx.nx-1; i++)
 		xB[i+1] = xB[i] + h * std::pow(gammaB, i);
-	h = (yend - ystart) * (gammaB - 1.0) / (std::pow(gammaB, meshBInfo.ny) - 1.0);
+	h = (yend - ystart) * (gammaB - 1.0) / (std::pow(gammaB, gridBCtx.ny) - 1.0);
 	yB[0] = ystart + 0.5 * h;
-	for (j=0; j<meshBInfo.ny-1; j++)
+	for (j=0; j<gridBCtx.ny-1; j++)
 		yB[j+1] = yB[j] + h * std::pow(gammaB, j);
-	ierr = VecRestoreArray(fieldB.x, &xB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.y, &yB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
+	ierr = VecRestoreArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Write("gridB.h5", fieldB.grid); CHKERRQ(ierr);
 
 	for (ite=0; ite<nt; ite++)
 	{
@@ -110,15 +112,8 @@ int main(int argc, char **argv)
 		}
 	}		
 
-	PetscMPIInt rank;
-	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
-	if (rank == 0)
-	{
-		ierr = PetibmFieldWriteGrid("gridA.h5", fieldA); CHKERRQ(ierr);
-		ierr = PetibmFieldWriteGrid("gridB.h5", fieldB); CHKERRQ(ierr);
-	}
-	ierr = PetibmFieldWriteValues("fieldA.h5", "phi", fieldA); CHKERRQ(ierr);
-	ierr = PetibmFieldWriteValues("fieldB.h5", "phi", fieldB); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Write("fieldA.h5", "phi", fieldA); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Write("fieldB.h5", "phi", fieldB); CHKERRQ(ierr);
 
 	ierr = PetibmFieldDestroy(fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);
