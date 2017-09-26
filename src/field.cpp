@@ -2,6 +2,8 @@
  * \file field.cpp
  */
 
+#include <vector>
+
 #include <petscviewerhdf5.h>
 
 #include "petibm-utilities/field.h"
@@ -11,7 +13,7 @@
 /*! Gets options from command-line or config file.
  *
  * \param prefix String to prepend to options.
- * \param ctx The PetibmFieldCtx structure to fill.
+ * \param ctx The PetibmFieldCtx structure to fill (passed by pointer).
  */
 PetscErrorCode PetibmFieldGetOptions(
 	const char prefix[], PetibmFieldCtx *ctx)
@@ -22,6 +24,7 @@ PetscErrorCode PetibmFieldGetOptions(
 
 	PetscFunctionBeginUser;
 
+	// get path of configuration file
 	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
 	                             path, sizeof(path), &found); CHKERRQ(ierr);
 	if (found)
@@ -29,34 +32,218 @@ PetscErrorCode PetibmFieldGetOptions(
 		ierr = PetscOptionsInsertFile(
 			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
 	}
+	// get path of file containing field values
 	ierr = PetscOptionsGetString(nullptr, prefix, "-path", ctx->path,
 	                             sizeof(ctx->path), &found); CHKERRQ(ierr);
+	// get name of the field
 	ierr = PetscOptionsGetString(nullptr, prefix, "-name", ctx->name,
 	                             sizeof(ctx->name), &found); CHKERRQ(ierr);
+	// get external boundary value
 	ierr = PetscOptionsGetReal(
 		nullptr, prefix, "-bc_value", &ctx->bc_value, &found); CHKERRQ(ierr);
+	// check if periodic in the x-direction
+	ierr = PetscOptionsGetBool(nullptr, prefix, "-periodic_x",
+	                           &ctx->periodic_x, &found); CHKERRQ(ierr);
+	// check if periodic in the y-direction
+	ierr = PetscOptionsGetBool(nullptr, prefix, "-periodic_y",
+	                           &ctx->periodic_y, &found); CHKERRQ(ierr);
+	// check if periodic in the z-direction
+	ierr = PetscOptionsGetBool(nullptr, prefix, "-periodic_z",
+	                           &ctx->periodic_z, &found); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
 } // PetibmFieldGetOptions
 
 
-/*! Initializes a PetibmField structure.
+/*! Initializes a PetibmField structure based on the grid.
  *
+ * Creates the DMDA object and local and global vectors associated with it.
  * Creates the vectors based on the DMDA object.
+ * The decomposition of the field follows the decomposition of the provided grid.
  *
- * \param field The PetibmField structure to initialize (passed by reference).
+ * \param ctx The context.
+ * \param grid The grid used a reference for domain decomposition of the field.
+ * \param field The field to initialize (passed by reference).
  */
-PetscErrorCode PetibmFieldInitialize(PetibmField &field)
+PetscErrorCode PetibmFieldInitialize(
+	const PetibmFieldCtx ctx, const PetibmGrid grid, PetibmField &field)
 {
   PetscErrorCode ierr;
+  PetscInt M, N, P, m, n, p;
+  DMBoundaryType bx, by, bz;
+  const PetscInt *lx, *ly, *lz;
 
   PetscFunctionBeginUser;
+
+  // get type of boundary conditions
+  bx = (ctx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+  by = (ctx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+  bz = (ctx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+  // get info from gridline in x-direction
+	ierr = DMDAGetInfo(grid.x.da,
+	                   nullptr,
+	                   &M, nullptr, nullptr,
+	                   &m, nullptr, nullptr,
+	                   nullptr, nullptr,
+	                   nullptr, nullptr, nullptr,
+	                   nullptr); CHKERRQ(ierr);
+	ierr = DMDAGetOwnershipRanges(
+		grid.x.da, &lx, nullptr, nullptr); CHKERRQ(ierr);
+	// get info from gridline in y-direction
+	ierr = DMDAGetInfo(grid.y.da,
+	                   nullptr,
+	                   &N, nullptr, nullptr,
+	                   &n, nullptr, nullptr,
+	                   nullptr, nullptr,
+	                   nullptr, nullptr, nullptr,
+	                   nullptr); CHKERRQ(ierr);
+	ierr = DMDAGetOwnershipRanges(
+		grid.y.da, &ly, nullptr, nullptr); CHKERRQ(ierr);
+	if (grid.dim == 3)
+	{
+		// get info from gridline in z-direction
+		ierr = DMDAGetInfo(grid.z.da,
+		                   nullptr,
+		                   &P, nullptr, nullptr,
+		                   &p, nullptr, nullptr,
+		                   nullptr, nullptr,
+		                   nullptr, nullptr, nullptr,
+		                   nullptr); CHKERRQ(ierr);
+		ierr = DMDAGetOwnershipRanges(
+			grid.z.da, &lz, nullptr, nullptr); CHKERRQ(ierr);
+		// create 3D DMDA
+		ierr = DMDACreate3d(PETSC_COMM_WORLD,
+		                    bx, by, bz,
+		                    DMDA_STENCIL_BOX,
+		                    M, N, P,
+		                    m, n, p,
+		                    1, 1,
+		                    lx, ly, lz,
+		                    &field.da); CHKERRQ(ierr);
+	}
+	else
+	{
+		// create 2D DMDA
+		ierr = DMDACreate2d(PETSC_COMM_WORLD,
+		                    bx, by,
+		                    DMDA_STENCIL_BOX,
+		                    M, N,
+		                    m, n,
+		                    1, 1,
+		                    lx, ly,
+		                    &field.da); CHKERRQ(ierr);
+	}
 
   ierr = DMCreateGlobalVector(field.da, &field.global); CHKERRQ(ierr);
   ierr = DMCreateLocalVector(field.da, &field.local); CHKERRQ(ierr);
 
   PetscFunctionReturn(0);
 } // PetibmFieldInitialize
+
+
+/*! Sets the value at external boundary points.
+ *
+ * \param value The value on the external boundaries.
+ * \param field The field to modify (passed by reference).
+ */
+PetscErrorCode PetibmFieldSetBoundaryPoints(
+	const PetscReal value, PetibmField &field)
+{
+	PetscErrorCode ierr;
+	DMDALocalInfo info;
+	PetscInt i, j, k;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAGetLocalInfo(field.da, &info); CHKERRQ(ierr);
+	if (info.dim == 2)
+	{
+		PetscReal **arr;
+		ierr = DMDAVecGetArray(field.da, field.local, &arr); CHKERRQ(ierr);
+		if (info.bx != DM_BOUNDARY_PERIODIC)
+		{
+			if (info.xs == 0)
+				for (j=info.gys; j<info.gys+info.gym; j++)
+					arr[j][-1] = value;
+			if (info.xs+info.xm == info.mx)
+				for (j=info.gys; j<info.gys+info.gym; j++)
+					arr[j][info.mx] = value;
+		}
+		if (info.by != DM_BOUNDARY_PERIODIC)
+		{
+			if (info.ys == 0)
+				for (i=info.gxs; i<info.gxs+info.gxm; i++)
+					arr[-1][i] = value;
+			if (info.ys+info.ym == info.my)
+				for (i=info.gxs; i<info.gxs+info.gxm; i++)
+					arr[info.my][i] = value;
+		}
+		ierr = DMDAVecRestoreArray(field.da, field.local, &arr); CHKERRQ(ierr);
+	}
+	else if (info.dim == 3)
+	{
+		PetscReal ***arr;
+		ierr = DMDAVecGetArray(field.da, field.local, &arr); CHKERRQ(ierr);
+		if (info.bx != DM_BOUNDARY_PERIODIC)
+		{
+			if (info.xs == 0)
+				for (k=info.gzs; k<info.gzs+info.gzm; k++)
+					for (j=info.gys; j<info.gys+info.gym; j++)
+						arr[k][j][-1] = value;
+			if (info.xs+info.xm == info.mx)
+				for (k=info.gzs; k<info.gzs+info.gzm; k++)
+					for (j=info.gys; j<info.gys+info.gym; j++)
+						arr[k][j][info.mx] = value;
+		}
+		if (info.by != DM_BOUNDARY_PERIODIC)
+		{
+			if (info.ys == 0)
+				for (k=info.gzs; k<info.gzs+info.gzm; k++)
+					for (i=info.gxs; i<info.gxs+info.gxm; i++)
+						arr[k][-1][i] = value;
+			if (info.ys+info.ym == info.my)
+				for (k=info.gzs; k<info.gzs+info.gzm; k++)
+					for (i=info.gxs; i<info.gxs+info.gxm; i++)
+						arr[k][info.my][i] = value;
+		}
+		if (info.bz != DM_BOUNDARY_PERIODIC)
+		{
+			if (info.zs == 0)
+				for (j=info.gys; j<info.gys+info.gym; j++)
+					for (i=info.gxs; i<info.gxs+info.gxm; i++)
+						arr[-1][j][i] = value;
+			if (info.zs+info.zm == info.mz)
+				for (j=info.gys; j<info.gys+info.gym; j++)
+					for (i=info.gxs; i<info.gxs+info.gxm; i++)
+						arr[info.mz][j][i] = value;
+		}
+		ierr = DMDAVecRestoreArray(field.da, field.local, &arr); CHKERRQ(ierr);
+	}
+	else
+		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
+		        "Function only supports 2D or 3D fields");
+
+	PetscFunctionReturn(0);
+} // PetibmFieldSetBoundaryPoints
+
+
+/*! Inserts values from global vector into local vector.
+ *
+ * \param field The field to work on (passed by reference).
+ */
+PetscErrorCode PetibmFieldGlobalToLocal(PetibmField &field)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMGlobalToLocalBegin(
+		field.da, field.global, INSERT_VALUES, field.local); CHKERRQ(ierr);
+	ierr = DMGlobalToLocalEnd(
+		field.da, field.global, INSERT_VALUES, field.local); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldGlobalToLocal
 
 
 /*! Destroys the PETSc objects of a PetibmField structure.
@@ -69,7 +256,6 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 
 	PetscFunctionBeginUser;
 
-	ierr = PetibmGridDestroy(field.grid); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.global); CHKERRQ(ierr);
 	ierr = VecDestroy(&field.local); CHKERRQ(ierr);
 	ierr = DMDestroy(&field.da); CHKERRQ(ierr);
@@ -78,7 +264,7 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 } // PetibmFieldDestroy
 
 
-/*! Reads the field values from file.
+/*! Reads the field values stored in HDF5 format from file.
  *
  * \param filepath Path of the input file.
  * \param name The name of the field.
@@ -92,7 +278,8 @@ PetscErrorCode PetibmFieldHDF5Read(
 
 	PetscFunctionBeginUser;
 
-	ierr = PetscObjectSetName((PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
+	ierr = PetscObjectSetName(
+		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
 	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_READ); CHKERRQ(ierr);
@@ -104,7 +291,7 @@ PetscErrorCode PetibmFieldHDF5Read(
 } // PetibmFieldHDF5Read
 
 
-/*! Writes the field values into file.
+/*! Writes the field values into file in HDF5 format.
  *
  * \param filepath Path of the output file.
  * \param name Name of the field.
@@ -131,66 +318,92 @@ PetscErrorCode PetibmFieldHDF5Write(
 } // PetibmFieldHDF5Write
 
 
-/*! Interpolates 2D field values from one mesh to another.
+/*! Interpolates field A associated with grid A onto grid B.
  *
- * \param fieldA PetibmField to be interpolated.
- * \param fieldB PetibmField on which the solution is interpolated.
- * \param bc_value Value to use near boundary when no neighbor is found.
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
  */
-PetscErrorCode PetibmFieldInterpolate2D(
-	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value)
+PetscErrorCode PetibmFieldInterpolate(
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB)
 {
 	PetscErrorCode ierr;
-	DMDALocalInfo info;
-	PetscInt i, j, I = 0, J = 0;
-	PetscBool found_x = PETSC_FALSE, found_y = PETSC_FALSE;
-	PetscReal *xA, *yA, *xB, *yB;
-	PetscReal **vA, **vB;
-	PetscReal v1, v2;
 
 	PetscFunctionBeginUser;
 
-	ierr = DMGlobalToLocalBegin(
-		fieldA.da, fieldA.global, INSERT_VALUES, fieldA.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(
-		fieldA.da, fieldA.global, INSERT_VALUES, fieldA.local); CHKERRQ(ierr);
+	if (gridA.dim == 2)
+	{
+		ierr = PetibmFieldInterpolate2D(
+			gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
+	}
+	else if (gridA.dim == 3)
+	{
+		ierr = PetibmFieldInterpolate3D(
+			gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
+	}
+	else
+		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
+		        "Function only supports 2D or 3D fields");
 
-	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
+	PetscFunctionReturn(0);
+} // PetibmFieldInterpolate
+
+
+/*! Interpolates a 2D field A associated with grid A onto grid B.
+ *
+ * Performs bi-linear interpolation.
+ *
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
+ */
+PetscErrorCode PetibmFieldInterpolate2D(
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB)
+{
+	PetscErrorCode ierr;
+	DMDALocalInfo info;
+	PetscInt i, j, I, J;
+	PetscReal *xA, *yA, *xB, *yB;
+	PetscReal **vA, **vB;
+	PetscReal v1, v2;
+	std::vector<PetscInt> Iv, Jv;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetibmFieldGlobalToLocal(fieldA); CHKERRQ(ierr);
+	ierr = PetibmGridGlobalToLocal(gridA); CHKERRQ(ierr);
+	ierr = PetibmGridGlobalToLocal(gridB); CHKERRQ(ierr);
+
+	ierr = PetibmGetNeighbors1D(gridB.x, gridA.x, Iv); CHKERRQ(ierr);
+	ierr = PetibmGetNeighbors1D(gridB.y, gridA.y, Jv); CHKERRQ(ierr);
 
 	ierr = DMDAVecGetArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridA.x.da, gridA.x.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridA.y.da, gridA.y.local, &yA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridB.x.da, gridB.x.local, &xB); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridB.y.da, gridB.y.local, &yB); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
 	for (j=info.ys; j<info.ys+info.ym; j++)
 	{
-		ierr = PetibmGetNeighborIndex1D(
-			yB[j], fieldA.grid.y, &J, &found_y); CHKERRQ(ierr);
-		I = 0;
+		J = Jv[j-info.ys];
 		for (i=info.xs; i<info.xs+info.xm;i++)
 		{
-			ierr = PetibmGetNeighborIndex1D(
-				xB[i], fieldA.grid.x, &I, &found_x); CHKERRQ(ierr);
-			if (found_x and found_y)
-			{	
-				v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J][I+1]);
-				v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J+1][I] +
-				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J+1][I+1]);
-				vB[j][i] = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
-				            (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
-			}
-			else
-			{
-				vB[j][i] = bc_value;
-			}
+			I = Iv[i-info.xs];
+			v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J][I] +
+			      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J][I+1]);
+			v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[J+1][I] +
+			      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[J+1][I+1]);
+			vB[j][i] = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
+			            (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
 		}
 	}
-	ierr = VecRestoreArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridA.x.da, gridA.x.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridA.y.da, gridA.y.local, &yA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.x.da, gridB.x.local, &xB); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.y.da, gridB.y.local, &yB); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
@@ -198,149 +411,79 @@ PetscErrorCode PetibmFieldInterpolate2D(
 } // PetibmFieldInterpolate2D
 
 
-/*! Interpolates 3D field values from one mesh to another.
+/*! Interpolates a 3D field A associated with grid A onto grid B.
  *
- * \param fieldA PetibmField to be interpolated.
- * \param fieldB PetibmField on which the solution is interpolated.
- * \param bc_value Value to use near boundary when no neighbor is found.
+ * Performs tri-linear interpolation.
+ *
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
  */
 PetscErrorCode PetibmFieldInterpolate3D(
-	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value)
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
-	PetscInt i, j, k, I = 0, J = 0, K=0;
-	PetscBool found_x = PETSC_FALSE, found_y = PETSC_FALSE, found_z = PETSC_FALSE;
+	PetscInt i, j, k, I, J, K;
 	PetscReal *xA, *yA, *zA, *xB, *yB, *zB;
 	PetscReal ***vA, ***vB;
 	PetscReal v1, v2, v3, v4, v12, v34;
+	std::vector<PetscInt> Iv, Jv, Kv;
 
 	PetscFunctionBeginUser;
 
-	ierr = DMGlobalToLocalBegin(
-		fieldA.da, fieldA.global, INSERT_VALUES, fieldA.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(
-		fieldA.da, fieldA.global, INSERT_VALUES, fieldA.local); CHKERRQ(ierr);
+	ierr = PetibmFieldGlobalToLocal(fieldA); CHKERRQ(ierr);
+	ierr = PetibmGridGlobalToLocal(gridA); CHKERRQ(ierr);
+	ierr = PetibmGridGlobalToLocal(gridB); CHKERRQ(ierr);
 
-	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
+	ierr = PetibmGetNeighbors1D(gridB.x, gridA.x, Iv); CHKERRQ(ierr);
+	ierr = PetibmGetNeighbors1D(gridB.y, gridA.y, Jv); CHKERRQ(ierr);
+	ierr = PetibmGetNeighbors1D(gridB.z, gridA.z, Kv); CHKERRQ(ierr);
 
 	ierr = DMDAVecGetArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldA.grid.z, &zA); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
-	ierr = VecGetArray(fieldB.grid.z, &zB); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridA.x.da, gridA.x.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridA.y.da, gridA.y.local, &yA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridA.z.da, gridA.z.local, &zA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridB.x.da, gridB.x.local, &xB); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridB.y.da, gridB.y.local, &yB); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(gridB.z.da, gridB.z.local, &zB); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
 	for (k=info.zs; k<info.zs+info.zm; k++)
 	{
-		ierr = PetibmGetNeighborIndex1D(
-			zB[k], fieldA.grid.z, &K, &found_z); CHKERRQ(ierr);
-		J = 0;
+		K = Kv[k-info.zs];
 		for (j=info.ys; j<info.ys+info.ym; j++)
 		{
-			ierr = PetibmGetNeighborIndex1D(
-				yB[j], fieldA.grid.y, &J, &found_y); CHKERRQ(ierr);
-			I = 0;
+			J = Jv[j-info.ys];
 			for (i=info.xs; i<info.xs+info.xm;i++)
 			{
-				ierr = PetibmGetNeighborIndex1D(
-					xB[i], fieldA.grid.x, &I, &found_x); CHKERRQ(ierr);
-				if (found_x and found_y and found_z)
-				{
-					v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J][I] +
-					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J][I+1]);
-					v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J+1][I] +
-					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J+1][I+1]);
-					v3 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J][I] +
-					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J][I+1]);
-					v4 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I] +
-					      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I+1]);
-					v12 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
-					       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
-					v34 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v3 +
-					       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v4);
-					vB[k][j][i] = ((zA[K+1] - zB[k]) / (zA[K+1] - zA[K]) * v12 +
-					              (zB[k] - zA[K]) / (zA[K+1] - zA[K]) * v34);
-				}
-				else
-				{
-					vB[k][j][i] = bc_value;
-				}
+				I = Iv[i-info.xs];
+				v1 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J][I+1]);
+				v2 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K][J+1][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K][J+1][I+1]);
+				v3 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J][I+1]);
+				v4 = ((xA[I+1] - xB[i]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I] +
+				      (xB[i] - xA[I]) / (xA[I+1] - xA[I]) * vA[K+1][J+1][I+1]);
+				v12 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v1 +
+				       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v2);
+				v34 = ((yA[J+1] - yB[j]) / (yA[J+1] - yA[J]) * v3 +
+				       (yB[j] - yA[J]) / (yA[J+1] - yA[J]) * v4);
+				vB[k][j][i] = ((zA[K+1] - zB[k]) / (zA[K+1] - zA[K]) * v12 +
+				               (zB[k] - zA[K]) / (zA[K+1] - zA[K]) * v34);
 			}
 		}
 	}
-	ierr = VecRestoreArray(fieldA.grid.x, &xA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.grid.y, &yA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldA.grid.z, &zA); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.grid.x, &xB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.grid.y, &yB); CHKERRQ(ierr);
-	ierr = VecRestoreArray(fieldB.grid.z, &zB); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridA.x.da, gridA.x.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridA.y.da, gridA.y.local, &yA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridA.z.da, gridA.z.local, &zA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.x.da, gridB.x.local, &xB); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.y.da, gridB.y.local, &yB); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.z.da, gridB.z.local, &zA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
 } // PetibmFieldInterpolate3D
-
-
-/*! Sets the value at external ghost points.
- *
- * \param field The PetibmField to update.
- * \param value Value at the external ghost points.
- */
-PetscErrorCode  PetibmFieldExternalGhostPointsSet(
-	PetibmField field, PetscReal value)
-{
-	PetscErrorCode ierr;
-	DMDALocalInfo info;
-	PetscInt i, j, k;
-
-	PetscFunctionBeginUser;
-
-	ierr = DMGlobalToLocalBegin(
-		field.da, field.global, INSERT_VALUES, field.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(
-		field.da, field.global, INSERT_VALUES, field.local); CHKERRQ(ierr);
-
-	ierr = DMDAGetLocalInfo(field.da, &info); CHKERRQ(ierr);
-	if (info.dim == 2)
-	{
-		PetscReal **arr;
-		ierr = DMDAVecGetArray(field.da, field.local, &arr); CHKERRQ(ierr);
-		for (i=info.xs; i<info.xs+info.xm; i++)
-			if (i == 0 or i == info.mx-1)
-				for (j=info.gys; j<info.gys+info.gym; j++)
-					arr[j][i] = value;
-		for (j=info.ys; j<info.ys+info.ym; j++)
-			if (j == 0 or j == info.my-1)
-				for (i=info.gxs; i<info.gxs+info.gxm; i++)
-					arr[j][i] = value;
-		ierr = DMDAVecRestoreArray(field.da, field.local, &arr); CHKERRQ(ierr);
-	}
-	else if (info.dim == 3)
-	{
-		PetscReal ***arr;
-		ierr = DMDAVecGetArray(field.da, field.local, &arr); CHKERRQ(ierr);
-		for (i=info.xs; i<info.xs+info.xm; i++)
-			if (i == 0 or i == info.mx-1)
-				for (k=info.gzs; k<info.gzs+info.gzm; k++)
-					for (j=info.gys; j<info.gys+info.gym; j++)
-						arr[k][j][i] = value;
-		for (j=info.ys; j<info.ys+info.ym; j++)
-			if (j == 0 or j == info.my-1)
-				for (k=info.gzs; k<info.gzs+info.gzm; k++)
-					for (i=info.gxs; i<info.gxs+info.gxm; i++)
-						arr[k][j][i] = value;
-		for (k=info.zs; k<info.zs+info.zm; k++)
-			if (k == 0 or k == info.mz-1)
-				for (j=info.gys; j<info.gys+info.gym; j++)
-					for (i=info.gxs; i<info.gxs+info.gxm; i++)
-						arr[k][j][i] = value;
-		ierr = DMDAVecRestoreArray(field.da, field.local, &arr); CHKERRQ(ierr);
-	}
-	else
-		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
-		        "Function only supports 2D or 3D fields");
-
-	PetscFunctionReturn(0);
-} // PetibmFieldExternalGhostPointsSet

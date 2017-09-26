@@ -1,4 +1,4 @@
-/*! Implementation of the functions to compute the 2D vorticity field.
+/*! Implementation of the functions to compute the vorticity field.
  * \file vorticity.cpp
  */
 
@@ -7,9 +7,9 @@
 
 /*! Computes the gridlines for the vorticity in the z-direction.
  *
- * \param ux PetibmGrid structure for the x-velocity.
- * \param uy PetibmGrid structure for the y-velocity.
- * \param wz PetibmGrid structure for the z-vorticity (passed by reference).
+ * \param ux The grid for the x-velocity.
+ * \param uy The grid for the y-velocity.
+ * \param wz The grid for the z-vorticity (passed by reference).
  */
 PetscErrorCode PetibmVorticityZComputeGrid(
 	const PetibmGrid ux, const PetibmGrid uy, PetibmGrid &wz)
@@ -18,34 +18,35 @@ PetscErrorCode PetibmVorticityZComputeGrid(
 	PetscReal *x, *y, *z;
 	PetscReal *x_m, *y_m, *z_m;
 	PetscInt nx, ny, nz;
+	PetscInt i, j, k;
 
 	PetscFunctionBeginUser;
 
-	ierr = VecGetSize(wz.x, &nx); CHKERRQ(ierr);
-	ierr = VecGetArray(wz.x, &x); CHKERRQ(ierr);
-	ierr = VecGetArray(ux.x, &x_m); CHKERRQ(ierr);
-	for (PetscInt i=0; i<nx; i++)
+	ierr = VecGetSize(wz.x.coords, &nx); CHKERRQ(ierr);
+	ierr = VecGetArray(wz.x.coords, &x); CHKERRQ(ierr);
+	ierr = VecGetArray(ux.x.coords, &x_m); CHKERRQ(ierr);
+	for (i=0; i<nx; i++)
 		x[i] = x_m[i];
-	ierr = VecRestoreArray(ux.x, &x_m); CHKERRQ(ierr);
-	ierr = VecRestoreArray(wz.x, &x); CHKERRQ(ierr);
+	ierr = VecRestoreArray(ux.x.coords, &x_m); CHKERRQ(ierr);
+	ierr = VecRestoreArray(wz.x.coords, &x); CHKERRQ(ierr);
 
-	ierr = VecGetSize(wz.y, &ny); CHKERRQ(ierr);
-	ierr = VecGetArray(wz.y, &y); CHKERRQ(ierr);
-	ierr = VecGetArray(uy.y, &y_m); CHKERRQ(ierr);
-	for (PetscInt j=0; j<ny; j++)
+	ierr = VecGetSize(wz.y.coords, &ny); CHKERRQ(ierr);
+	ierr = VecGetArray(wz.y.coords, &y); CHKERRQ(ierr);
+	ierr = VecGetArray(uy.y.coords, &y_m); CHKERRQ(ierr);
+	for (j=0; j<ny; j++)
 		y[j] = y_m[j];
-	ierr = VecRestoreArray(wz.y, &y); CHKERRQ(ierr);
-	ierr = VecRestoreArray(uy.y, &y_m); CHKERRQ(ierr);
+	ierr = VecRestoreArray(wz.y.coords, &y); CHKERRQ(ierr);
+	ierr = VecRestoreArray(uy.y.coords, &y_m); CHKERRQ(ierr);
 
 	if (wz.dim == 3)
 	{
-		ierr = VecGetSize(wz.z, &nz); CHKERRQ(ierr);
-		ierr = VecGetArray(wz.z, &z); CHKERRQ(ierr);
-		ierr = VecGetArray(ux.z, &z_m); CHKERRQ(ierr);
-		for (PetscInt k=0; k<nz; k++)
+		ierr = VecGetSize(wz.z.coords, &nz); CHKERRQ(ierr);
+		ierr = VecGetArray(wz.z.coords, &z); CHKERRQ(ierr);
+		ierr = VecGetArray(ux.z.coords, &z_m); CHKERRQ(ierr);
+		for (k=0; k<nz; k++)
 			z[k] = z_m[k];
-		ierr = VecRestoreArray(wz.z, &z); CHKERRQ(ierr);
-		ierr = VecRestoreArray(ux.z, &z_m); CHKERRQ(ierr);
+		ierr = VecRestoreArray(wz.z.coords, &z); CHKERRQ(ierr);
+		ierr = VecRestoreArray(ux.z.coords, &z_m); CHKERRQ(ierr);
 	}
 
 	PetscFunctionReturn(0);
@@ -56,12 +57,15 @@ PetscErrorCode PetibmVorticityZComputeGrid(
  *
  * First-order.
  *
- * \param ux PetibmField structure for the x-velocity.
- * \param uy PetibmField structure for the y-velocity.
- * \param wz PetibmField structure for the z-vorticity (passed by reference).
+ * \param gridux The grid for the velocity in the x-direction.
+ * \param griduy The grid for the velocity in the y-direction.
+ * \param ux The velocity field in the x-direction.
+ * \param uy The velocity field in the y-direction.
+ * \param wz The vorticity field in the z-direction (passed by reference).
  */
 PetscErrorCode PetibmVorticityZComputeField(
-	const PetibmField ux, const PetibmField uy, PetibmField &wz)
+	PetibmGrid gridux, PetibmGrid griduy, PetibmField ux, PetibmField uy,
+	PetibmField &wz)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -71,24 +75,19 @@ PetscErrorCode PetibmVorticityZComputeField(
 
 	PetscFunctionBeginUser;
 
-	// create local velocity vectors from global ones
-	ierr = DMGlobalToLocalBegin(ux.da, ux.global, INSERT_VALUES, ux.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(ux.da, ux.global, INSERT_VALUES, ux.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalBegin(uy.da, uy.global, INSERT_VALUES, uy.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(uy.da, uy.global, INSERT_VALUES, uy.local); CHKERRQ(ierr);
+	ierr = PetibmFieldGlobalToLocal(ux); CHKERRQ(ierr);
+	ierr = PetibmFieldGlobalToLocal(uy); CHKERRQ(ierr);
 
 	ierr = DMDAGetLocalInfo(wz.da, &info); CHKERRQ(ierr);
 
 	if (info.dim == 2)
 	{
 		PetscReal **wz_a, **ux_a, **uy_a;
-		// get access to vector values in multi-dimensional fashion
 		ierr = DMDAVecGetArray(wz.da, wz.global, &wz_a); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(ux.da, ux.local, &ux_a); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
-		ierr = VecGetArray(uy.grid.x, &x_a); CHKERRQ(ierr);
-		ierr = VecGetArray(ux.grid.y, &y_a); CHKERRQ(ierr);
-
+		ierr = VecGetArray(griduy.x.coords, &x_a); CHKERRQ(ierr);
+		ierr = VecGetArray(gridux.y.coords, &y_a); CHKERRQ(ierr);
 		for (j=info.ys; j<info.ys+info.ym; j++)
 		{
 			for (i=info.xs; i<info.xs+info.xm; i++)
@@ -100,8 +99,8 @@ PetscErrorCode PetibmVorticityZComputeField(
 				wz_a[j][i] = dv/dx - du/dy;
 			}
 		}
-		ierr = VecRestoreArray(uy.grid.x, &x_a); CHKERRQ(ierr);
-		ierr = VecRestoreArray(ux.grid.y, &y_a); CHKERRQ(ierr);
+		ierr = VecRestoreArray(griduy.x.coords, &x_a); CHKERRQ(ierr);
+		ierr = VecRestoreArray(gridux.y.coords, &y_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(ux.da, ux.local, &ux_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(wz.da, wz.global, &wz_a); CHKERRQ(ierr);
@@ -109,13 +108,11 @@ PetscErrorCode PetibmVorticityZComputeField(
 	else if (info.dim == 3)
 	{
 		PetscReal ***wz_a, ***ux_a, ***uy_a;
-		// get access to vector values in multi-dimensional fashion
 		ierr = DMDAVecGetArray(wz.da, wz.global, &wz_a); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(ux.da, ux.local, &ux_a); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
-		ierr = VecGetArray(uy.grid.x, &x_a); CHKERRQ(ierr);
-		ierr = VecGetArray(ux.grid.y, &y_a); CHKERRQ(ierr);
-
+		ierr = VecGetArray(griduy.x.coords, &x_a); CHKERRQ(ierr);
+		ierr = VecGetArray(gridux.y.coords, &y_a); CHKERRQ(ierr);
 		for (k=info.zs; k<info.zs+info.zm; k++)
 		{
 			for (j=info.ys; j<info.ys+info.ym; j++)
@@ -130,8 +127,8 @@ PetscErrorCode PetibmVorticityZComputeField(
 				}
 			}
 		}
-		ierr = VecRestoreArray(uy.grid.x, &x_a); CHKERRQ(ierr);
-		ierr = VecRestoreArray(ux.grid.y, &y_a); CHKERRQ(ierr);
+		ierr = VecRestoreArray(griduy.x.coords, &x_a); CHKERRQ(ierr);
+		ierr = VecRestoreArray(gridux.y.coords, &y_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(ux.da, ux.local, &ux_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
 		ierr = DMDAVecRestoreArray(wz.da, wz.global, &wz_a); CHKERRQ(ierr);
@@ -146,9 +143,9 @@ PetscErrorCode PetibmVorticityZComputeField(
 
 /*! Computes the gridlines for the vorticity in the x-direction.
  *
- * \param uy PetibmGrid structure for the y-velocity.
- * \param uz PetibmGrid structure for the z-velocity.
- * \param wx PetibmGrid structure for the x-vorticity (passed by reference).
+ * \param uy The grid for the y-velocity.
+ * \param uz The grid for the z-velocity.
+ * \param wx The grid for the x-vorticity (passed by reference).
  */
 PetscErrorCode PetibmVorticityXComputeGrid(
 	const PetibmGrid uy, const PetibmGrid uz, PetibmGrid &wx)
@@ -156,37 +153,38 @@ PetscErrorCode PetibmVorticityXComputeGrid(
 	PetscErrorCode ierr;
 	PetscReal *x, *y, *z;
 	PetscReal *x_m, *y_m, *z_m;
+	PetscInt i, j, k;
 	PetscInt nx, ny, nz;
 
 	PetscFunctionBeginUser;
 
 	if (wx.dim != 3)
 		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
-		        "Function only supports 3D fields");
+		        "Function only supports 3D grids");
 
-	ierr = VecGetSize(wx.x, &nx); CHKERRQ(ierr);
-	ierr = VecGetArray(wx.x, &x); CHKERRQ(ierr);
-	ierr = VecGetArray(uy.x, &x_m); CHKERRQ(ierr);
-	for (PetscInt i=0; i<nx; i++)
+	ierr = VecGetSize(wx.x.coords, &nx); CHKERRQ(ierr);
+	ierr = VecGetArray(wx.x.coords, &x); CHKERRQ(ierr);
+	ierr = VecGetArray(uy.x.coords, &x_m); CHKERRQ(ierr);
+	for (i=0; i<nx; i++)
 		x[i] = x_m[i];
-	ierr = VecRestoreArray(uy.x, &x_m); CHKERRQ(ierr);
-	ierr = VecRestoreArray(wx.x, &x); CHKERRQ(ierr);
+	ierr = VecRestoreArray(uy.x.coords, &x_m); CHKERRQ(ierr);
+	ierr = VecRestoreArray(wx.x.coords, &x); CHKERRQ(ierr);
 
-	ierr = VecGetSize(wx.y, &ny); CHKERRQ(ierr);
-	ierr = VecGetArray(wx.y, &y); CHKERRQ(ierr);
-	ierr = VecGetArray(uy.y, &y_m); CHKERRQ(ierr);
-	for (PetscInt j=0; j<ny; j++)
+	ierr = VecGetSize(wx.y.coords, &ny); CHKERRQ(ierr);
+	ierr = VecGetArray(wx.y.coords, &y); CHKERRQ(ierr);
+	ierr = VecGetArray(uy.y.coords, &y_m); CHKERRQ(ierr);
+	for (j=0; j<ny; j++)
 		y[j] = y_m[j];
-	ierr = VecRestoreArray(wx.y, &y); CHKERRQ(ierr);
-	ierr = VecRestoreArray(uy.y, &y_m); CHKERRQ(ierr);
+	ierr = VecRestoreArray(wx.y.coords, &y); CHKERRQ(ierr);
+	ierr = VecRestoreArray(uy.y.coords, &y_m); CHKERRQ(ierr);
 
-	ierr = VecGetSize(wx.z, &nz); CHKERRQ(ierr);
-	ierr = VecGetArray(wx.z, &z); CHKERRQ(ierr);
-	ierr = VecGetArray(uz.z, &z_m); CHKERRQ(ierr);
-	for (PetscInt k=0; k<nz; k++)
+	ierr = VecGetSize(wx.z.coords, &nz); CHKERRQ(ierr);
+	ierr = VecGetArray(wx.z.coords, &z); CHKERRQ(ierr);
+	ierr = VecGetArray(uz.z.coords, &z_m); CHKERRQ(ierr);
+	for (k=0; k<nz; k++)
 		z[k] = z_m[k];
-	ierr = VecRestoreArray(wx.z, &z); CHKERRQ(ierr);
-	ierr = VecRestoreArray(uz.z, &z_m); CHKERRQ(ierr);
+	ierr = VecRestoreArray(wx.z.coords, &z); CHKERRQ(ierr);
+	ierr = VecRestoreArray(uz.z.coords, &z_m); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
 } // PetibmVorticityXComputeGrid
@@ -196,12 +194,15 @@ PetscErrorCode PetibmVorticityXComputeGrid(
  *
  * First-order.
  *
- * \param uy PetibmField structure for the y-velocity.
- * \param uz PetibmField structure for the z-velocity.
- * \param wx PetibmField of the x-vorticity (passed by reference).
+ * \param griduy The grid for the velocity in the y-direction.
+ * \param griduz The grid for the velocity in the z-direction.
+ * \param uy The velocity field in the y-direction.
+ * \param uz The velocity field in the z-direction.
+ * \param wx The vorticity field in the x-direction (passed by reference).
  */
 PetscErrorCode PetibmVorticityXComputeField(
-	const PetibmField uy, const PetibmField uz, PetibmField &wx)
+	PetibmGrid griduy, PetibmGrid griduz, PetibmField uy, PetibmField uz,
+	PetibmField &wx)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -217,19 +218,14 @@ PetscErrorCode PetibmVorticityXComputeField(
 		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
 		        "Function only supports 3D fields");
 
-	// create local velocity vectors from global ones
-	ierr = DMGlobalToLocalBegin(uy.da, uy.global, INSERT_VALUES, uy.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(uy.da, uy.global, INSERT_VALUES, uy.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalBegin(uz.da, uz.global, INSERT_VALUES, uz.local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(uz.da, uz.global, INSERT_VALUES, uz.local); CHKERRQ(ierr);
+	ierr = PetibmFieldGlobalToLocal(uy); CHKERRQ(ierr);
+	ierr = PetibmFieldGlobalToLocal(uz); CHKERRQ(ierr);
 
-	// get access to vector values in multi-dimensional fashion
 	ierr = DMDAVecGetArray(wx.da, wx.global, &wx_a); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(uz.da, uz.local, &uz_a); CHKERRQ(ierr);
-	ierr = VecGetArray(uz.grid.y, &y_a); CHKERRQ(ierr);
-	ierr = VecGetArray(uy.grid.z, &z_a); CHKERRQ(ierr);
-
+	ierr = VecGetArray(griduz.y.coords, &y_a); CHKERRQ(ierr);
+	ierr = VecGetArray(griduy.z.coords, &z_a); CHKERRQ(ierr);
 	for (k=info.zs; k<info.zs+info.zm; k++)
 	{
 		for (j=info.ys; j<info.ys+info.ym; j++)
@@ -244,9 +240,8 @@ PetscErrorCode PetibmVorticityXComputeField(
 			}
 		}
 	}
-
-	ierr = VecRestoreArray(uz.grid.y, &y_a); CHKERRQ(ierr);
-	ierr = VecRestoreArray(uy.grid.z, &z_a); CHKERRQ(ierr);
+	ierr = VecRestoreArray(griduz.y.coords, &y_a); CHKERRQ(ierr);
+	ierr = VecRestoreArray(griduy.z.coords, &z_a); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(uy.da, uy.local, &uy_a); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(uz.da, uz.local, &uz_a); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(wx.da, wx.global, &wx_a); CHKERRQ(ierr);

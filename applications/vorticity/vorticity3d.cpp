@@ -18,175 +18,211 @@
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
+	std::string directory, gridpath;
+	PetibmGrid grid, gridux, griduy, griduz, gridwx, gridwz;
+	PetibmGridCtx gridCtx, griduxCtx, griduyCtx, griduzCtx;
+	PetibmField ux, uy, uz, wx, wz;
+	PetibmFieldCtx fieldCtx;
+	PetibmTimeStepCtx stepCtx;
+	DM da;
+	const PetscInt *plx, *ply, *plz;
+	PetscInt *lx, *ly, *lz;
+	PetscInt M, N, P, m, n, p;
+	DMBoundaryType bType_x, bType_y, bType_z;
+	PetscInt ite;
+	PetscMPIInt rank;
 
 	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
 
+	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+
 	// parse command-line options
-	std::string directory;
 	ierr = PetibmGetDirectory(&directory); CHKERRQ(ierr);
-	PetibmTimeStepCtx stepCtx;
-	ierr = PetibmTimeStepsGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
-	PetibmGridCtx gridCtx;
+	ierr = PetibmTimeStepGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &gridCtx); CHKERRQ(ierr);
+	ierr = PetibmFieldGetOptions(nullptr, &fieldCtx); CHKERRQ(ierr);
 
-	DMBoundaryType bType_x, bType_y, bType_z;
-	bType_x = (gridCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (gridCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_z = (gridCtx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-
-	// create DMDA for phi
-	PetibmField phi;
+	// read cell-centered gridline stations
+	grid.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nx, &grid.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.ny, &grid.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nz, &grid.z.coords); CHKERRQ(ierr);
+	gridpath = directory+"/grids/cell-centered.h5";
+	ierr = PetibmGridlineHDF5Read(gridpath, "x", grid.x.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "y", grid.y.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "z", grid.z.coords); CHKERRQ(ierr);
+	// read staggered gridline stations for x-velocity
+	griduxCtx.nx = (fieldCtx.periodic_x) ? gridCtx.nx : gridCtx.nx-1;
+	griduxCtx.ny = gridCtx.ny;
+	griduxCtx.nz = gridCtx.nz;
+	gridux.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduxCtx.nx, &gridux.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduxCtx.ny, &gridux.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduxCtx.nz, &gridux.z.coords); CHKERRQ(ierr);
+	gridpath = directory+"/grids/staggered-x.h5";
+	ierr = PetibmGridlineHDF5Read(gridpath, "x", gridux.x.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "y", gridux.y.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "z", gridux.z.coords); CHKERRQ(ierr);
+	// read staggered gridline stations for y-velocity
+	griduyCtx.nx = gridCtx.nx;
+	griduyCtx.ny = (fieldCtx.periodic_y) ? gridCtx.ny : gridCtx.ny-1;
+	griduyCtx.nz = gridCtx.nz;
+	griduy.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduyCtx.nx, &griduy.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduyCtx.ny, &griduy.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduyCtx.nz, &griduy.z.coords); CHKERRQ(ierr);
+	gridpath = directory+"/grids/staggered-y.h5";
+	ierr = PetibmGridlineHDF5Read(gridpath, "x", griduy.x.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "y", griduy.y.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "z", griduy.z.coords); CHKERRQ(ierr);
+	// read staggered gridline stations for z-velocity
+	griduzCtx.nx = gridCtx.nx;
+	griduzCtx.ny = gridCtx.ny;
+	griduzCtx.nz = (fieldCtx.periodic_z) ? gridCtx.nz : gridCtx.nz-1;
+	griduz.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduzCtx.nx, &griduz.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduzCtx.ny, &griduz.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, griduzCtx.nz, &griduz.z.coords); CHKERRQ(ierr);
+	gridpath = directory+"/grids/staggered-z.h5";
+	ierr = PetibmGridlineHDF5Read(gridpath, "x", griduz.x.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "y", griduz.y.coords); CHKERRQ(ierr);
+	ierr = PetibmGridlineHDF5Read(gridpath, "z", griduz.z.coords); CHKERRQ(ierr);
+	// create grid for x-vorticity
+	gridwx.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nx, &gridwx.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.ny-1, &gridwx.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nz-1, &gridwx.z.coords); CHKERRQ(ierr);
+	ierr = PetibmVorticityXComputeGrid(griduy, griduz, gridwx); CHKERRQ(ierr);
+	if (rank == 0)
+	{
+		gridpath = directory+"/grids/wx.h5";
+		ierr = PetibmGridHDF5Write(gridpath, gridwx); CHKERRQ(ierr);
+	}
+	// create grid for z-vorticity
+	gridwz.dim = 3;
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nx-1, &gridwz.x.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.ny-1, &gridwz.y.coords); CHKERRQ(ierr);
+	ierr = VecCreateSeq(
+		PETSC_COMM_SELF, gridCtx.nz, &gridwz.z.coords); CHKERRQ(ierr);
+	ierr = PetibmVorticityZComputeGrid(gridux, griduy, gridwz); CHKERRQ(ierr);
+	if (rank == 0)
+	{
+		gridpath = directory+"/grids/wz.h5";
+		ierr = PetibmGridHDF5Write(gridpath, gridwz); CHKERRQ(ierr);
+	}
+	// create base DMDA object
+	bType_x = (fieldCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (fieldCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_z = (fieldCtx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
 	                    DMDA_STENCIL_STAR,
 	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE, 1, 1,
-	                    nullptr, nullptr, nullptr,
-	                    &phi.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) phi.da, nullptr, "-phi_dmda_view"); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(phi); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, phi.grid); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Read(
-		directory + "/grids/cell-centered.h5", phi.grid); CHKERRQ(ierr);
-
-	// create DMDA objects for velocity components from DMDA object for pressure
-	const PetscInt *plx, *ply, *plz;
-	PetscInt *lx, *ly, *lz;
-	ierr = DMDAGetOwnershipRanges(phi.da, &plx, &ply, &plz); CHKERRQ(ierr);
-	PetscInt m, n, p;
-	ierr = DMDAGetInfo(phi.da,
-	                   nullptr, nullptr, nullptr, nullptr,
-	                   &m, &n, &p,
+	                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+	                    1, 1, nullptr, nullptr, nullptr,
+	                    &da); CHKERRQ(ierr);
+	// get info from base DMDA for velocity components and z-vorticity
+	ierr = DMDAGetOwnershipRanges(da, &plx, &ply, &plz); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da,
+	                   nullptr,
 	                   nullptr, nullptr, nullptr,
-	                   nullptr, nullptr, nullptr); CHKERRQ(ierr);
-	
-	// x-component of velocity
-	PetibmField ux;
+	                   &m, &n, &p,
+	                   nullptr, nullptr,
+	                   &bType_x, &bType_y, &bType_z,
+	                   nullptr); CHKERRQ(ierr);
+	// create DMDA and vector for velocity in x-direction
 	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
 	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
 	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
 	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
 	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
 	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
-	if (!gridCtx.periodic_x)
+	M = gridCtx.nx;
+	N = gridCtx.ny;
+	P = gridCtx.nz;
+	if (!fieldCtx.periodic_x)
 	{
 	  lx[m-1]--;
-	  gridCtx.nx--;
+	  M--;
 	}
-	ierr = DMDACreate3d(PETSC_COMM_WORLD, 
-	                    bType_x, bType_y, bType_z, 
-	                    DMDA_STENCIL_BOX, 
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    m, n, p, 1, 1, lx, ly, lz, 
-	                    &ux.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) ux.da, nullptr, "-ux_dmda_view"); CHKERRQ(ierr);
-	ierr = PetscFree(lx); CHKERRQ(ierr);
-	ierr = PetscFree(ly); CHKERRQ(ierr);
-	ierr = PetscFree(lz); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(ux); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, ux.grid); CHKERRQ(ierr);
-	if (!gridCtx.periodic_x)
-		gridCtx.nx++;
-	ierr = PetibmGridHDF5Read(
-		directory + "/grids/staggered-x.h5", ux.grid); CHKERRQ(ierr);
-	
-	// y-component of velocity
-	PetibmField uy;
-	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
-	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
-	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
-	if (!gridCtx.periodic_y)
-	{
-	  ly[n-1]--;
-	  gridCtx.ny--;
-	}
-	ierr = DMDACreate3d(PETSC_COMM_WORLD, 
-	                    bType_x, bType_y, bType_z, 
-	                    DMDA_STENCIL_BOX, 
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    m, n, p, 1, 1, lx, ly, lz, 
-	                    &uy.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) uy.da, nullptr, "-uy_dmda_view"); CHKERRQ(ierr);
-	ierr = PetscFree(lx); CHKERRQ(ierr);
-	ierr = PetscFree(ly); CHKERRQ(ierr);
-	ierr = PetscFree(lz); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(uy); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, uy.grid); CHKERRQ(ierr);
-	if (!gridCtx.periodic_y)
-		gridCtx.ny++;
-	ierr = PetibmGridHDF5Read(
-		directory + "/grids/staggered-y.h5", uy.grid); CHKERRQ(ierr);
-	
-	// z-component of velocity
-	PetibmField uz;
-	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
-	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
-	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
-	if (!gridCtx.periodic_z)
-	{
-	  lz[p-1]--;
-	  gridCtx.nz--;
-	}
-	ierr = DMDACreate3d(PETSC_COMM_WORLD, 
-	                    bType_x, bType_y, bType_z, 
-	                    DMDA_STENCIL_BOX, 
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    m, n, p, 1, 1, lx, ly, lz, 
-	                    &uz.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) uz.da, nullptr, "-uz_dmda_view"); CHKERRQ(ierr);
-	ierr = PetscFree(lx); CHKERRQ(ierr);
-	ierr = PetscFree(ly); CHKERRQ(ierr);
-	ierr = PetscFree(lz); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(uz); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, uz.grid); CHKERRQ(ierr);
-	if (!gridCtx.periodic_z)
-		gridCtx.nz++;
-	ierr = PetibmGridHDF5Read(
-		directory + "/grids/staggered-z.h5", uz.grid); CHKERRQ(ierr);
-
-	// create z-vorticity field
-	PetibmField wz;
-	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
-	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
-	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
-	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
-	lx[m-1]--;
-	ly[n-1]--;
-	gridCtx.nx--;
-	gridCtx.ny--;
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
-	                    DMDA_STENCIL_STAR,
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    m, n, p, 1, 1, lx, ly, lz, 
-	                    &wz.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) wz.da, nullptr, "-wz_dmda_view"); CHKERRQ(ierr);
+	                    DMDA_STENCIL_BOX,
+	                    M, N, P, m, n, p, 1, 1, lx, ly, lz,
+	                    &ux.da); CHKERRQ(ierr);
 	ierr = PetscFree(lx); CHKERRQ(ierr);
 	ierr = PetscFree(ly); CHKERRQ(ierr);
 	ierr = PetscFree(lz); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(wz); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, uz.grid); CHKERRQ(ierr);
-	gridCtx.nx++;
-	gridCtx.ny++;
-	ierr = PetibmVorticityZComputeGrid(ux.grid, uy.grid, wz.grid); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Write(
-		directory + "/grids/wz.h5", wz.grid); CHKERRQ(ierr);
-
-	// create x-vorticity field
-	PetibmField wx;
+	ierr = DMCreateGlobalVector(ux.da, &ux.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(ux.da, &ux.local); CHKERRQ(ierr);
+	// create DMDA and vector for velocity in y-direction
+	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
+	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
+	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
+	M = gridCtx.nx;
+	N = gridCtx.ny;
+	P = gridCtx.nz;
+	if (!fieldCtx.periodic_y)
+	{
+	  ly[n-1]--;
+	  N--;
+	}
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y, bType_z,
+	                    DMDA_STENCIL_BOX,
+	                    M, N, P, m, n, p, 1, 1, lx, ly, lz,
+	                    &uy.da); CHKERRQ(ierr);
+	ierr = PetscFree(lx); CHKERRQ(ierr);
+	ierr = PetscFree(ly); CHKERRQ(ierr);
+	ierr = PetscFree(lz); CHKERRQ(ierr);
+	ierr = DMCreateGlobalVector(uy.da, &uy.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(uy.da, &uy.local); CHKERRQ(ierr);
+	// create DMDA and vector for velocity in z-direction
+	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
+	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
+	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
+	M = gridCtx.nx;
+	N = gridCtx.ny;
+	P = gridCtx.nz;
+	if (!fieldCtx.periodic_z)
+	{
+	  lz[p-1]--;
+	  P--;
+	}
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y, bType_z,
+	                    DMDA_STENCIL_BOX,
+	                    M, N, P, m, n, p, 1, 1, lx, ly, lz,
+	                    &uz.da); CHKERRQ(ierr);
+	ierr = PetscFree(lx); CHKERRQ(ierr);
+	ierr = PetscFree(ly); CHKERRQ(ierr);
+	ierr = PetscFree(lz); CHKERRQ(ierr);
+	ierr = DMCreateGlobalVector(uz.da, &uz.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(uz.da, &uz.local); CHKERRQ(ierr);
+	// create DMDA and vector for x-vorticity
 	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
 	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
 	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
@@ -195,53 +231,74 @@ int main(int argc, char **argv)
 	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
 	ly[n-1]--;
 	lz[p-1]--;
-	gridCtx.ny--;
-	gridCtx.nz--;
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
 	                    DMDA_STENCIL_STAR,
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    m, n, p, 1, 1, lx, ly, lz, 
-	                    &wz.da); CHKERRQ(ierr);
-	ierr = PetscObjectViewFromOptions(
-		(PetscObject) wx.da, nullptr, "-wx_dmda_view"); CHKERRQ(ierr);
+	                    gridCtx.nx, gridCtx.ny-1, gridCtx.nz-1, m, n, p,
+	                    1, 1, lx, ly, lz,
+	                    &wx.da); CHKERRQ(ierr);
 	ierr = PetscFree(lx); CHKERRQ(ierr);
 	ierr = PetscFree(ly); CHKERRQ(ierr);
 	ierr = PetscFree(lz); CHKERRQ(ierr);
-	ierr = PetibmFieldInitialize(wx); CHKERRQ(ierr);
-	ierr = PetibmGridInitialize(gridCtx, ux.grid); CHKERRQ(ierr);
-	gridCtx.ny++;
-	gridCtx.nz++;
-	ierr = PetibmVorticityXComputeGrid(uy.grid, uz.grid, wx.grid); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Write(
-		directory + "/grids/wx.h5", wx.grid); CHKERRQ(ierr);
+	ierr = DMCreateGlobalVector(wx.da, &wx.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(wx.da, &wx.local); CHKERRQ(ierr);
+	// create DMDA and vector for z-vorticity
+	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
+	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
+	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
+	lx[m-1]--;
+	ly[n-1]--;
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y, bType_z,
+	                    DMDA_STENCIL_STAR,
+	                    gridCtx.nx-1, gridCtx.ny-1, gridCtx.nz, m, n, p,
+	                    1, 1, lx, ly, lz,
+	                    &wz.da); CHKERRQ(ierr);
+	ierr = PetscFree(lx); CHKERRQ(ierr);
+	ierr = PetscFree(ly); CHKERRQ(ierr);
+	ierr = PetscFree(lz); CHKERRQ(ierr);
+	ierr = DMCreateGlobalVector(wz.da, &wz.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(wz.da, &wz.local); CHKERRQ(ierr);
 
-	for (PetscInt ite=stepCtx.start; ite<=stepCtx.end; ite+=stepCtx.step)
+	// loop over the time steps to compute the z-vorticity
+	for (ite=stepCtx.start; ite<=stepCtx.end; ite+=stepCtx.step)
 	{
 	  ierr = PetscPrintf(
-			PETSC_COMM_WORLD, "[time-step %D]\n", ite); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, "[time-step %d]\n", ite); CHKERRQ(ierr);
 	  // get time-step directory
 	  std::stringstream ss;
 	  ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;
 	  std::string folder(ss.str());
-	  // read values
-	  ierr = PetibmFieldHDF5Read(folder + "/ux.h5", "ux", ux); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Read(folder + "/uy.h5", "uy", uy); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Read(folder + "/uz.h5", "uz", uz); CHKERRQ(ierr);
-	  // compute the z-vorticity
-	  ierr = PetibmVorticityZComputeField(ux, uy, wz); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Write(folder + "/wz.h5", "wz", wz); CHKERRQ(ierr);
-	  // compute the x-vorticity
-	  ierr = PetibmVorticityXComputeField(uy, uz, wx); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Write(folder + "/wx.h5", "wx", wx); CHKERRQ(ierr);
+	  // read velocity field
+	  ierr = PetibmFieldHDF5Read(folder+"/ux.h5", "ux", ux); CHKERRQ(ierr);
+	  ierr = PetibmFieldHDF5Read(folder+"/uy.h5", "uy", uy); CHKERRQ(ierr);
+	  ierr = PetibmFieldHDF5Read(folder+"/uz.h5", "uz", uz); CHKERRQ(ierr);
+	  // compute the x-vorticity field
+	  ierr = PetibmVorticityXComputeField(
+			griduy, griduz, uy, uz, wx); CHKERRQ(ierr);
+	  ierr = PetibmFieldHDF5Write(folder+"/wx.h5", "wx", wx); CHKERRQ(ierr);
+	  // compute the z-vorticity field
+	  ierr = PetibmVorticityZComputeField(
+			gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
+	  ierr = PetibmFieldHDF5Write(folder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
 	}
 
+	ierr = PetibmGridDestroy(gridux); CHKERRQ(ierr);
+	ierr = PetibmGridDestroy(griduy); CHKERRQ(ierr);
+	ierr = PetibmGridDestroy(griduz); CHKERRQ(ierr);
+	ierr = PetibmGridDestroy(gridwx); CHKERRQ(ierr);
+	ierr = PetibmGridDestroy(gridwz); CHKERRQ(ierr);
+	ierr = DMDestroy(&da); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(ux); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uy); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uz); CHKERRQ(ierr);
-	ierr = PetibmFieldDestroy(phi); CHKERRQ(ierr);
-	ierr = PetibmFieldDestroy(wz); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(wx); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(wz); CHKERRQ(ierr);
+	
 	ierr = PetscFinalize(); CHKERRQ(ierr);
+
 	return 0;
 } // main

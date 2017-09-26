@@ -1,5 +1,5 @@
-/*! Definition of the structure PetibmField.
- * \file field.hpp
+/*! Definition of the structure PetibmField and related functions.
+ * \file field.h
  */
 
 #pragma once
@@ -10,33 +10,67 @@
 #include "petibm-utilities/grid.h"
 
 
-typedef struct
+/*! Structure holding the field (decomposition and vectors).
+ */
+struct PetibmField
 {
-	PetibmGrid grid;
-	DM da;
-	Vec global, local;
-} PetibmField;
+	DM da;  /// the decomposition of the field
+	Vec global,  /// parallel vector containing the field values
+	    local;  /// sequential ghosted vector containing the field values on process.
+}; // PetibmField
 
-typedef struct
+
+/*! Structure holding information about the field.
+ */
+struct PetibmFieldCtx
 {
-	char path[PETSC_MAX_PATH_LEN];
-	char name[PETSC_MAX_PATH_LEN];
-	PetscReal bc_value = 0.0;
-} PetibmFieldCtx;
+	char path[PETSC_MAX_PATH_LEN];  /// path of the file containing field values
+	char name[PETSC_MAX_PATH_LEN];  /// name of the field
+	PetscReal bc_value = 0.0;  /// value to set at external boundary points
+	PetscBool periodic_x = PETSC_FALSE,  /// is field periodic in the x-direction?
+	          periodic_y = PETSC_FALSE,  /// is field periodic in the y-direction?
+	          periodic_z = PETSC_FALSE;  /// is field periodic in the z-direction?
+}; // PetibmFieldCtx
+
 
 /*! Gets options from command-line or config file.
  *
  * \param prefix String to prepend to options.
- * \param ctx The PetibmFieldCtx structure to fill.
+ * \param ctx The PetibmFieldCtx structure to fill (passed by pointer).
  */
 PetscErrorCode PetibmFieldGetOptions(
 	const char prefix[], PetibmFieldCtx *ctx);
 
-/*! Initializes a PetibmField structure.
- *.
- * \param field The PetibmField structure to initialize (passed by reference).
+
+/*! Initializes a PetibmField structure based on the grid.
+ *
+ * Creates the DMDA object and local and global vectors associated with it.
+ * Creates the vectors based on the DMDA object.
+ * The decomposition of the field follows the decomposition of the provided grid.
+ *
+ * \param ctx The context.
+ * \param grid The grid used a reference for domain decomposition of the field.
+ * \param field The field to initialize (passed by reference).
  */
-PetscErrorCode PetibmFieldInitialize(PetibmField &field);
+PetscErrorCode PetibmFieldInitialize(
+	const PetibmFieldCtx ctx, const PetibmGrid grid, PetibmField &field);
+
+
+/*! Sets the value at external boundary points.
+ *
+ * \param value The value on the external boundaries.
+ * \param field The field to modify (passed by reference).
+ */
+PetscErrorCode PetibmFieldSetBoundaryPoints(
+	const PetscReal value, PetibmField &field);
+
+
+/*! Inserts values from global vector into local vector.
+ *
+ * \param field The field to work on (passed by reference).
+ */
+PetscErrorCode PetibmFieldGlobalToLocal(PetibmField &field);
+
 
 /*! Destroys the PETSc objects of a PetibmField structure.
  *
@@ -44,7 +78,8 @@ PetscErrorCode PetibmFieldInitialize(PetibmField &field);
  */
 PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 
-/*! Reads the field values from file.
+
+/*! Reads the field values stored in HDF5 format from file.
  *
  * \param filepath Path of the input file.
  * \param name The name of the field.
@@ -53,7 +88,8 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 PetscErrorCode PetibmFieldHDF5Read(
 	const std::string filepath, const std::string name, PetibmField &field);
 
-/*! Writes the field values into file.
+
+/*! Writes the field values into file in HDF5 format.
  *
  * \param filepath Path of the output file.
  * \param name Name of the field.
@@ -62,28 +98,39 @@ PetscErrorCode PetibmFieldHDF5Read(
 PetscErrorCode PetibmFieldHDF5Write(
 	const std::string filepath, const std::string name, const PetibmField field);
 
-/*! Interpolates 2D field values from one mesh to another.
+
+/*! Interpolates field A associated with grid A onto grid B.
  *
- * \param fieldA PetibmField to be interpolated.
- * \param fieldB PetibmField on which the solution is interpolated.
- * \param bc_value Value to use near boundary when no neighbor is found.
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
+ */
+PetscErrorCode PetibmFieldInterpolate(
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB);
+
+
+/*! Interpolates a 2D field A associated with grid A onto grid B.
+ *
+ * Performs bi-linear interpolation.
+ *
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
  */
 PetscErrorCode PetibmFieldInterpolate2D(
-	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value);
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB);
 
-/*! Interpolates 3D field values from one mesh to another.
+
+/*! Interpolates a 3D field A associated with grid A onto grid B.
  *
- * \param fieldA PetibmField to be interpolated.
- * \param fieldB PetibmField on which the solution is interpolated.
- * \param bc_value Value to use near boundary when no neighbor is found.
+ * Performs tri-linear interpolation.
+ *
+ * \param gridA The grid to interpolate from.
+ * \param fieldA The field to interpolate.
+ * \param gridB The grid to interpolate on.
+ * \param fieldB The resulting interpolated field (passed by reference).
  */
 PetscErrorCode PetibmFieldInterpolate3D(
-	const PetibmField fieldA, PetibmField &fieldB, const PetscReal bc_value);
-
-/*! Sets the value at external ghost points.
- *
- * \param field The PetibmField to update.
- * \param value Value at the external ghost points.
- */
-PetscErrorCode  PetibmFieldExternalGhostPointsSet(
-	PetibmField field, PetscReal value);
+	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB);

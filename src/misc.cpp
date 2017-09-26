@@ -7,7 +7,10 @@
 
 /*! Gets the directory from the command-line.
  *
- * \param directory Directory of the numerical solution.
+ * If the command-line parameter `-directory <path>` is not found, the present
+ * working directory is used.
+ *
+ * \param directory Directory of the numerical solution (passed by pointer).
  */
 PetscErrorCode PetibmGetDirectory(std::string *directory)
 {
@@ -25,35 +28,133 @@ PetscErrorCode PetibmGetDirectory(std::string *directory)
 } // PetibmGetDirectory
 
 
-/*! Finds index of closest point on left side.
+/*! Counts the number of points within provided boundaries.
  *
- * \param x_i Point for which we look the neighbor.
- * \param x Vec that contains all neighbors.
- * \param index Index of the closest neighbor.
- * \param found Set to PETSC_TRUE is closest neighbor found.
+ * \param x The sequential vector containing the points.
+ * \param start The starting boundary.
+ * \param end The ending boundary.
+ * \param num The number of points (passed by pointer).
  */
-PetscErrorCode PetibmGetNeighborIndex1D(
-	const PetscReal x_i, const Vec x, PetscInt *index, PetscBool *found)
+PetscErrorCode PetibmGetNumPoints1D(
+	const Vec x, const PetscReal start, const PetscReal end, PetscInt *num)
 {
 	PetscErrorCode ierr;
-	PetscReal *x_a;
-	PetscInt i, i_start = *index;
 	PetscInt n;
+	PetscReal *x_arr;
+	PetscInt count;
 
 	PetscFunctionBeginUser;
 
-	ierr = VecGetLocalSize(x, &n); CHKERRQ(ierr);
-	ierr = VecGetArray(x, &x_a); CHKERRQ(ierr);
-	for (i=i_start; i<n-1; i++)
-	{
-		if (x_a[i] <= x_i and x_i < x_a[i+1])
-		{
-			*index = i;
-			*found = PETSC_TRUE;
-			break;
-		}
-	}
-	ierr = VecRestoreArray(x, &x_a); CHKERRQ(ierr);
+	ierr = VecGetSize(x, &n); CHKERRQ(ierr);
+	ierr = VecGetArray(x, &x_arr); CHKERRQ(ierr);
+	count = 0;
+	for (PetscInt i=0; i<n; i++)
+		if (start <= x_arr[i] and x_arr[i] < end)
+			count++;
+	ierr = VecRestoreArray(x, &x_arr); CHKERRQ(ierr);
+	*num = count;
 
 	PetscFunctionReturn(0);
-} // PetibmGetNeighborIndex1D
+} // PetibmGetNumPoints1D
+
+
+/*! Get the global index of the inferior neighbor from a gridline for each
+ * station along another gridline.
+ *
+ * \param lineB The gridline where each station will be associated with a neighbor.
+ * \param lineA The reference gridline where to find neighbors.
+ * \param Iv Standard vector that will contains the indices (passed by reference).
+ */
+PetscErrorCode PetibmGetNeighbors1D(
+	PetibmGridline lineB, PetibmGridline lineA, std::vector<PetscInt> &Iv)
+{
+	PetscErrorCode ierr;
+	DMDALocalInfo infoA, infoB;
+	PetscInt i, I, Istart;
+	PetscReal *xA, *xB;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAGetLocalInfo(lineA.da, &infoA); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(lineB.da, &infoB); CHKERRQ(ierr);
+
+	Iv.reserve(infoB.xm);
+	ierr = DMDAVecGetArray(lineA.da, lineA.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(lineB.da, lineB.local, &xB); CHKERRQ(ierr);
+	Istart = infoA.gxs;
+	for (i=infoB.xs; i<infoB.xs+infoB.xm; i++)
+	{
+		for (I=Istart; I<infoA.xs+infoA.xm; I++)
+		{
+			if (xA[I] <= xB[i] and xB[i] < xA[I+1])
+			{
+				Iv.push_back(I);
+				break;
+			}
+		}
+		Istart = I;
+	}
+	ierr = DMDAVecRestoreArray(lineA.da, lineA.local, &xA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(lineB.da, lineB.local, &xB); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmGetNeighbors1D
+
+
+/*! Helper function to print on-process vector in a sequential manner.
+ *
+ * \param v The vector to print.
+ */
+PetscErrorCode PetibmVecView(const Vec v)
+{
+	PetscErrorCode ierr;
+	PetscMPIInt r, rank, size;
+
+	PetscFunctionBeginUser;
+
+	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+	ierr = MPI_Comm_size(PETSC_COMM_WORLD, &size); CHKERRQ(ierr);
+
+	for (r=0; r<size; r++)
+	{
+		if (r == rank)
+		{
+			ierr = PetscPrintf(
+				PETSC_COMM_SELF, "[%d/%d]\n", rank+1, size); CHKERRQ(ierr);
+			ierr = VecView(v, PETSC_VIEWER_STDOUT_SELF); CHKERRQ(ierr);
+		}
+		ierr = MPI_Barrier(PETSC_COMM_WORLD);
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmVecView
+
+
+/*! Helper function to print on-process array of integers in a sequential manner.
+ *
+ * \param N The number of elements.
+ * \param v The array of integers to print.
+ */
+PetscErrorCode PetibmIntView(const PetscInt N, const PetscInt v[])
+{
+	PetscErrorCode ierr;
+	PetscMPIInt r, rank, size;
+
+	PetscFunctionBeginUser;
+
+	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+	ierr = MPI_Comm_size(PETSC_COMM_WORLD, &size); CHKERRQ(ierr);
+
+	for (r=0; r<size; r++)
+	{
+		if (r == rank)
+		{
+			ierr = PetscPrintf(
+				PETSC_COMM_SELF, "[%d/%d]\n", rank+1, size); CHKERRQ(ierr);
+			ierr = PetscIntView(N, v, PETSC_VIEWER_STDOUT_SELF); CHKERRQ(ierr);
+		}
+		ierr = MPI_Barrier(PETSC_COMM_WORLD);
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmIntStdVecView

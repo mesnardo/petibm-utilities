@@ -110,7 +110,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_petibm_interpolation2d_OBJECTS =  \
-	petibm_interpolation2d-interpolation2d.$(OBJEXT)
+	petibm_interpolation2d-interpolation.$(OBJEXT)
 petibm_interpolation2d_OBJECTS = $(am_petibm_interpolation2d_OBJECTS)
 petibm_interpolation2d_DEPENDENCIES =  \
 	$(top_builddir)/src/libpetibm-utilities.la
@@ -119,18 +119,18 @@ am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
 am_petibm_interpolation2d_test_OBJECTS =  \
-	petibm_interpolation2d_test-test2d.$(OBJEXT)
+	petibm_interpolation2d_test-test.$(OBJEXT)
 petibm_interpolation2d_test_OBJECTS =  \
 	$(am_petibm_interpolation2d_test_OBJECTS)
 petibm_interpolation2d_test_DEPENDENCIES =  \
 	$(top_builddir)/src/libpetibm-utilities.la
 am_petibm_interpolation3d_OBJECTS =  \
-	petibm_interpolation3d-interpolation3d.$(OBJEXT)
+	petibm_interpolation3d-interpolation.$(OBJEXT)
 petibm_interpolation3d_OBJECTS = $(am_petibm_interpolation3d_OBJECTS)
 petibm_interpolation3d_DEPENDENCIES =  \
 	$(top_builddir)/src/libpetibm-utilities.la
 am_petibm_interpolation3d_test_OBJECTS =  \
-	petibm_interpolation3d_test-test3d.$(OBJEXT)
+	petibm_interpolation3d_test-test.$(OBJEXT)
 petibm_interpolation3d_test_OBJECTS =  \
 	$(am_petibm_interpolation3d_test_OBJECTS)
 petibm_interpolation3d_test_DEPENDENCIES =  \
@@ -327,17 +327,25 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-petibm_interpolation2d_SOURCES = interpolation2d.cpp
-petibm_interpolation2d_CPPFLAGS = -I$(top_srcdir)/include
+petibm_interpolation2d_SOURCES = interpolation.cpp
+petibm_interpolation2d_CPPFLAGS = -DDIMENSIONS=2 \
+                                  -I$(top_srcdir)/include
+
 petibm_interpolation2d_LDADD = $(top_builddir)/src/libpetibm-utilities.la
-petibm_interpolation3d_SOURCES = interpolation3d.cpp
-petibm_interpolation3d_CPPFLAGS = -I$(top_srcdir)/include
+petibm_interpolation3d_SOURCES = interpolation.cpp
+petibm_interpolation3d_CPPFLAGS = -DDIMENSIONS=3 \
+                                  -I$(top_srcdir)/include
+
 petibm_interpolation3d_LDADD = $(top_builddir)/src/libpetibm-utilities.la
-petibm_interpolation2d_test_SOURCES = test2d.cpp
-petibm_interpolation2d_test_CPPFLAGS = -I$(top_srcdir)/include
+petibm_interpolation2d_test_SOURCES = test.cpp
+petibm_interpolation2d_test_CPPFLAGS = -DDIMENSIONS=2 \
+                                       -I$(top_srcdir)/include
+
 petibm_interpolation2d_test_LDADD = $(top_builddir)/src/libpetibm-utilities.la
-petibm_interpolation3d_test_SOURCES = test3d.cpp
-petibm_interpolation3d_test_CPPFLAGS = -I$(top_srcdir)/include
+petibm_interpolation3d_test_SOURCES = test.cpp
+petibm_interpolation3d_test_CPPFLAGS = -DDIMENSIONS=3 \
+                                       -I$(top_srcdir)/include
+
 petibm_interpolation3d_test_LDADD = $(top_builddir)/src/libpetibm-utilities.la
 all: all-am
 
@@ -444,10 +452,10 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation2d-interpolation2d.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation2d_test-test2d.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation3d-interpolation3d.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation3d_test-test3d.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation2d-interpolation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation2d_test-test.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation3d-interpolation.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_interpolation3d_test-test.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -473,61 +481,61 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-petibm_interpolation2d-interpolation2d.o: interpolation2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d-interpolation2d.o -MD -MP -MF $(DEPDIR)/petibm_interpolation2d-interpolation2d.Tpo -c -o petibm_interpolation2d-interpolation2d.o `test -f 'interpolation2d.cpp' || echo '$(srcdir)/'`interpolation2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d-interpolation2d.Tpo $(DEPDIR)/petibm_interpolation2d-interpolation2d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation2d.cpp' object='petibm_interpolation2d-interpolation2d.o' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation2d-interpolation.o: interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d-interpolation.o -MD -MP -MF $(DEPDIR)/petibm_interpolation2d-interpolation.Tpo -c -o petibm_interpolation2d-interpolation.o `test -f 'interpolation.cpp' || echo '$(srcdir)/'`interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d-interpolation.Tpo $(DEPDIR)/petibm_interpolation2d-interpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation.cpp' object='petibm_interpolation2d-interpolation.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d-interpolation2d.o `test -f 'interpolation2d.cpp' || echo '$(srcdir)/'`interpolation2d.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d-interpolation.o `test -f 'interpolation.cpp' || echo '$(srcdir)/'`interpolation.cpp
 
-petibm_interpolation2d-interpolation2d.obj: interpolation2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d-interpolation2d.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation2d-interpolation2d.Tpo -c -o petibm_interpolation2d-interpolation2d.obj `if test -f 'interpolation2d.cpp'; then $(CYGPATH_W) 'interpolation2d.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation2d.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d-interpolation2d.Tpo $(DEPDIR)/petibm_interpolation2d-interpolation2d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation2d.cpp' object='petibm_interpolation2d-interpolation2d.obj' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation2d-interpolation.obj: interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d-interpolation.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation2d-interpolation.Tpo -c -o petibm_interpolation2d-interpolation.obj `if test -f 'interpolation.cpp'; then $(CYGPATH_W) 'interpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d-interpolation.Tpo $(DEPDIR)/petibm_interpolation2d-interpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation.cpp' object='petibm_interpolation2d-interpolation.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d-interpolation2d.obj `if test -f 'interpolation2d.cpp'; then $(CYGPATH_W) 'interpolation2d.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation2d.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d-interpolation.obj `if test -f 'interpolation.cpp'; then $(CYGPATH_W) 'interpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation.cpp'; fi`
 
-petibm_interpolation2d_test-test2d.o: test2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d_test-test2d.o -MD -MP -MF $(DEPDIR)/petibm_interpolation2d_test-test2d.Tpo -c -o petibm_interpolation2d_test-test2d.o `test -f 'test2d.cpp' || echo '$(srcdir)/'`test2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d_test-test2d.Tpo $(DEPDIR)/petibm_interpolation2d_test-test2d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test2d.cpp' object='petibm_interpolation2d_test-test2d.o' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation2d_test-test.o: test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d_test-test.o -MD -MP -MF $(DEPDIR)/petibm_interpolation2d_test-test.Tpo -c -o petibm_interpolation2d_test-test.o `test -f 'test.cpp' || echo '$(srcdir)/'`test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d_test-test.Tpo $(DEPDIR)/petibm_interpolation2d_test-test.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test.cpp' object='petibm_interpolation2d_test-test.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d_test-test2d.o `test -f 'test2d.cpp' || echo '$(srcdir)/'`test2d.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d_test-test.o `test -f 'test.cpp' || echo '$(srcdir)/'`test.cpp
 
-petibm_interpolation2d_test-test2d.obj: test2d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d_test-test2d.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation2d_test-test2d.Tpo -c -o petibm_interpolation2d_test-test2d.obj `if test -f 'test2d.cpp'; then $(CYGPATH_W) 'test2d.cpp'; else $(CYGPATH_W) '$(srcdir)/test2d.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d_test-test2d.Tpo $(DEPDIR)/petibm_interpolation2d_test-test2d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test2d.cpp' object='petibm_interpolation2d_test-test2d.obj' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation2d_test-test.obj: test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation2d_test-test.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation2d_test-test.Tpo -c -o petibm_interpolation2d_test-test.obj `if test -f 'test.cpp'; then $(CYGPATH_W) 'test.cpp'; else $(CYGPATH_W) '$(srcdir)/test.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation2d_test-test.Tpo $(DEPDIR)/petibm_interpolation2d_test-test.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test.cpp' object='petibm_interpolation2d_test-test.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d_test-test2d.obj `if test -f 'test2d.cpp'; then $(CYGPATH_W) 'test2d.cpp'; else $(CYGPATH_W) '$(srcdir)/test2d.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation2d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation2d_test-test.obj `if test -f 'test.cpp'; then $(CYGPATH_W) 'test.cpp'; else $(CYGPATH_W) '$(srcdir)/test.cpp'; fi`
 
-petibm_interpolation3d-interpolation3d.o: interpolation3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d-interpolation3d.o -MD -MP -MF $(DEPDIR)/petibm_interpolation3d-interpolation3d.Tpo -c -o petibm_interpolation3d-interpolation3d.o `test -f 'interpolation3d.cpp' || echo '$(srcdir)/'`interpolation3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d-interpolation3d.Tpo $(DEPDIR)/petibm_interpolation3d-interpolation3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation3d.cpp' object='petibm_interpolation3d-interpolation3d.o' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation3d-interpolation.o: interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d-interpolation.o -MD -MP -MF $(DEPDIR)/petibm_interpolation3d-interpolation.Tpo -c -o petibm_interpolation3d-interpolation.o `test -f 'interpolation.cpp' || echo '$(srcdir)/'`interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d-interpolation.Tpo $(DEPDIR)/petibm_interpolation3d-interpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation.cpp' object='petibm_interpolation3d-interpolation.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d-interpolation3d.o `test -f 'interpolation3d.cpp' || echo '$(srcdir)/'`interpolation3d.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d-interpolation.o `test -f 'interpolation.cpp' || echo '$(srcdir)/'`interpolation.cpp
 
-petibm_interpolation3d-interpolation3d.obj: interpolation3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d-interpolation3d.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation3d-interpolation3d.Tpo -c -o petibm_interpolation3d-interpolation3d.obj `if test -f 'interpolation3d.cpp'; then $(CYGPATH_W) 'interpolation3d.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation3d.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d-interpolation3d.Tpo $(DEPDIR)/petibm_interpolation3d-interpolation3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation3d.cpp' object='petibm_interpolation3d-interpolation3d.obj' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation3d-interpolation.obj: interpolation.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d-interpolation.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation3d-interpolation.Tpo -c -o petibm_interpolation3d-interpolation.obj `if test -f 'interpolation.cpp'; then $(CYGPATH_W) 'interpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d-interpolation.Tpo $(DEPDIR)/petibm_interpolation3d-interpolation.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='interpolation.cpp' object='petibm_interpolation3d-interpolation.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d-interpolation3d.obj `if test -f 'interpolation3d.cpp'; then $(CYGPATH_W) 'interpolation3d.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation3d.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d-interpolation.obj `if test -f 'interpolation.cpp'; then $(CYGPATH_W) 'interpolation.cpp'; else $(CYGPATH_W) '$(srcdir)/interpolation.cpp'; fi`
 
-petibm_interpolation3d_test-test3d.o: test3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d_test-test3d.o -MD -MP -MF $(DEPDIR)/petibm_interpolation3d_test-test3d.Tpo -c -o petibm_interpolation3d_test-test3d.o `test -f 'test3d.cpp' || echo '$(srcdir)/'`test3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d_test-test3d.Tpo $(DEPDIR)/petibm_interpolation3d_test-test3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test3d.cpp' object='petibm_interpolation3d_test-test3d.o' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation3d_test-test.o: test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d_test-test.o -MD -MP -MF $(DEPDIR)/petibm_interpolation3d_test-test.Tpo -c -o petibm_interpolation3d_test-test.o `test -f 'test.cpp' || echo '$(srcdir)/'`test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d_test-test.Tpo $(DEPDIR)/petibm_interpolation3d_test-test.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test.cpp' object='petibm_interpolation3d_test-test.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d_test-test3d.o `test -f 'test3d.cpp' || echo '$(srcdir)/'`test3d.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d_test-test.o `test -f 'test.cpp' || echo '$(srcdir)/'`test.cpp
 
-petibm_interpolation3d_test-test3d.obj: test3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d_test-test3d.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation3d_test-test3d.Tpo -c -o petibm_interpolation3d_test-test3d.obj `if test -f 'test3d.cpp'; then $(CYGPATH_W) 'test3d.cpp'; else $(CYGPATH_W) '$(srcdir)/test3d.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d_test-test3d.Tpo $(DEPDIR)/petibm_interpolation3d_test-test3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test3d.cpp' object='petibm_interpolation3d_test-test3d.obj' libtool=no @AMDEPBACKSLASH@
+petibm_interpolation3d_test-test.obj: test.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_interpolation3d_test-test.obj -MD -MP -MF $(DEPDIR)/petibm_interpolation3d_test-test.Tpo -c -o petibm_interpolation3d_test-test.obj `if test -f 'test.cpp'; then $(CYGPATH_W) 'test.cpp'; else $(CYGPATH_W) '$(srcdir)/test.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_interpolation3d_test-test.Tpo $(DEPDIR)/petibm_interpolation3d_test-test.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='test.cpp' object='petibm_interpolation3d_test-test.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d_test-test3d.obj `if test -f 'test3d.cpp'; then $(CYGPATH_W) 'test3d.cpp'; else $(CYGPATH_W) '$(srcdir)/test3d.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_interpolation3d_test_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_interpolation3d_test-test.obj `if test -f 'test.cpp'; then $(CYGPATH_W) 'test.cpp'; else $(CYGPATH_W) '$(srcdir)/test.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

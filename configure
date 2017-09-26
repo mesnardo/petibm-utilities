@@ -18752,7 +18752,7 @@ echo
 
 
 # list of Makefiles to generate
-ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile applications/Makefile applications/vorticity/Makefile applications/interpolation/Makefile"
+ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile applications/Makefile applications/interpolation/Makefile applications/vorticity/Makefile"
 
 
 # output message
@@ -19885,8 +19885,8 @@ do
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "applications/Makefile") CONFIG_FILES="$CONFIG_FILES applications/Makefile" ;;
-    "applications/vorticity/Makefile") CONFIG_FILES="$CONFIG_FILES applications/vorticity/Makefile" ;;
     "applications/interpolation/Makefile") CONFIG_FILES="$CONFIG_FILES applications/interpolation/Makefile" ;;
+    "applications/vorticity/Makefile") CONFIG_FILES="$CONFIG_FILES applications/vorticity/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

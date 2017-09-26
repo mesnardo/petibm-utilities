@@ -1,2 +1,2 @@
-SUBDIRS = vorticity \
-          interpolation
+SUBDIRS = interpolation \
+          vorticity
