@@ -88,7 +88,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = petibm-convert3d$(EXEEXT)
+bin_PROGRAMS = petibm-convert2d$(EXEEXT) petibm-convert3d$(EXEEXT)
 subdir = applications/convert
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/configure_petsc.m4 \
@@ -106,14 +106,18 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_petibm_convert3d_OBJECTS = petibm_convert3d-convert3d.$(OBJEXT)
-petibm_convert3d_OBJECTS = $(am_petibm_convert3d_OBJECTS)
-petibm_convert3d_DEPENDENCIES =  \
+am_petibm_convert2d_OBJECTS = petibm_convert2d-convert.$(OBJEXT)
+petibm_convert2d_OBJECTS = $(am_petibm_convert2d_OBJECTS)
+petibm_convert2d_DEPENDENCIES =  \
 	$(top_builddir)/src/libpetibm-utilities.la
 AM_V_lt = $(am__v_lt_@AM_V@)
 am__v_lt_ = $(am__v_lt_@AM_DEFAULT_V@)
 am__v_lt_0 = --silent
 am__v_lt_1 = 
+am_petibm_convert3d_OBJECTS = petibm_convert3d-convert.$(OBJEXT)
+petibm_convert3d_OBJECTS = $(am_petibm_convert3d_OBJECTS)
+petibm_convert3d_DEPENDENCIES =  \
+	$(top_builddir)/src/libpetibm-utilities.la
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -148,8 +152,8 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(petibm_convert3d_SOURCES)
-DIST_SOURCES = $(petibm_convert3d_SOURCES)
+SOURCES = $(petibm_convert2d_SOURCES) $(petibm_convert3d_SOURCES)
+DIST_SOURCES = $(petibm_convert2d_SOURCES) $(petibm_convert3d_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -300,8 +304,15 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-petibm_convert3d_SOURCES = convert3d.cpp
-petibm_convert3d_CPPFLAGS = -I$(top_srcdir)/include
+petibm_convert2d_SOURCES = convert.cpp
+petibm_convert2d_CPPFLAGS = -DDIMENSIONS=2 \
+                            -I$(top_srcdir)/include
+
+petibm_convert2d_LDADD = $(top_builddir)/src/libpetibm-utilities.la
+petibm_convert3d_SOURCES = convert.cpp
+petibm_convert3d_CPPFLAGS = -DDIMENSIONS=3 \
+                            -I$(top_srcdir)/include
+
 petibm_convert3d_LDADD = $(top_builddir)/src/libpetibm-utilities.la
 all: all-am
 
@@ -386,6 +397,10 @@ clean-binPROGRAMS:
 	echo " rm -f" $$list; \
 	rm -f $$list
 
+petibm-convert2d$(EXEEXT): $(petibm_convert2d_OBJECTS) $(petibm_convert2d_DEPENDENCIES) $(EXTRA_petibm_convert2d_DEPENDENCIES) 
+	@rm -f petibm-convert2d$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(petibm_convert2d_OBJECTS) $(petibm_convert2d_LDADD) $(LIBS)
+
 petibm-convert3d$(EXEEXT): $(petibm_convert3d_OBJECTS) $(petibm_convert3d_DEPENDENCIES) $(EXTRA_petibm_convert3d_DEPENDENCIES) 
 	@rm -f petibm-convert3d$(EXEEXT)
 	$(AM_V_CXXLD)$(CXXLINK) $(petibm_convert3d_OBJECTS) $(petibm_convert3d_LDADD) $(LIBS)
@@ -396,7 +411,8 @@ mostlyclean-compile:
 distclean-compile:
 	-rm -f *.tab.c
 
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_convert3d-convert3d.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_convert2d-convert.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/petibm_convert3d-convert.Po@am__quote@
 
 .cpp.o:
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)depbase=`echo $@ | sed 's|[^/]*$$|$(DEPDIR)/&|;s|\.o$$||'`;\
@@ -422,19 +438,33 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LTCXXCOMPILE) -c -o $@ $<
 
-petibm_convert3d-convert3d.o: convert3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert3d-convert3d.o -MD -MP -MF $(DEPDIR)/petibm_convert3d-convert3d.Tpo -c -o petibm_convert3d-convert3d.o `test -f 'convert3d.cpp' || echo '$(srcdir)/'`convert3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert3d-convert3d.Tpo $(DEPDIR)/petibm_convert3d-convert3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert3d.cpp' object='petibm_convert3d-convert3d.o' libtool=no @AMDEPBACKSLASH@
+petibm_convert2d-convert.o: convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert2d-convert.o -MD -MP -MF $(DEPDIR)/petibm_convert2d-convert.Tpo -c -o petibm_convert2d-convert.o `test -f 'convert.cpp' || echo '$(srcdir)/'`convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert2d-convert.Tpo $(DEPDIR)/petibm_convert2d-convert.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert.cpp' object='petibm_convert2d-convert.o' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert3d-convert3d.o `test -f 'convert3d.cpp' || echo '$(srcdir)/'`convert3d.cpp
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert2d-convert.o `test -f 'convert.cpp' || echo '$(srcdir)/'`convert.cpp
 
-petibm_convert3d-convert3d.obj: convert3d.cpp
-@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert3d-convert3d.obj -MD -MP -MF $(DEPDIR)/petibm_convert3d-convert3d.Tpo -c -o petibm_convert3d-convert3d.obj `if test -f 'convert3d.cpp'; then $(CYGPATH_W) 'convert3d.cpp'; else $(CYGPATH_W) '$(srcdir)/convert3d.cpp'; fi`
-@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert3d-convert3d.Tpo $(DEPDIR)/petibm_convert3d-convert3d.Po
-@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert3d.cpp' object='petibm_convert3d-convert3d.obj' libtool=no @AMDEPBACKSLASH@
+petibm_convert2d-convert.obj: convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert2d-convert.obj -MD -MP -MF $(DEPDIR)/petibm_convert2d-convert.Tpo -c -o petibm_convert2d-convert.obj `if test -f 'convert.cpp'; then $(CYGPATH_W) 'convert.cpp'; else $(CYGPATH_W) '$(srcdir)/convert.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert2d-convert.Tpo $(DEPDIR)/petibm_convert2d-convert.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert.cpp' object='petibm_convert2d-convert.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert3d-convert3d.obj `if test -f 'convert3d.cpp'; then $(CYGPATH_W) 'convert3d.cpp'; else $(CYGPATH_W) '$(srcdir)/convert3d.cpp'; fi`
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert2d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert2d-convert.obj `if test -f 'convert.cpp'; then $(CYGPATH_W) 'convert.cpp'; else $(CYGPATH_W) '$(srcdir)/convert.cpp'; fi`
+
+petibm_convert3d-convert.o: convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert3d-convert.o -MD -MP -MF $(DEPDIR)/petibm_convert3d-convert.Tpo -c -o petibm_convert3d-convert.o `test -f 'convert.cpp' || echo '$(srcdir)/'`convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert3d-convert.Tpo $(DEPDIR)/petibm_convert3d-convert.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert.cpp' object='petibm_convert3d-convert.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert3d-convert.o `test -f 'convert.cpp' || echo '$(srcdir)/'`convert.cpp
+
+petibm_convert3d-convert.obj: convert.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -MT petibm_convert3d-convert.obj -MD -MP -MF $(DEPDIR)/petibm_convert3d-convert.Tpo -c -o petibm_convert3d-convert.obj `if test -f 'convert.cpp'; then $(CYGPATH_W) 'convert.cpp'; else $(CYGPATH_W) '$(srcdir)/convert.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/petibm_convert3d-convert.Tpo $(DEPDIR)/petibm_convert3d-convert.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='convert.cpp' object='petibm_convert3d-convert.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(petibm_convert3d_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -c -o petibm_convert3d-convert.obj `if test -f 'convert.cpp'; then $(CYGPATH_W) 'convert.cpp'; else $(CYGPATH_W) '$(srcdir)/convert.cpp'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo

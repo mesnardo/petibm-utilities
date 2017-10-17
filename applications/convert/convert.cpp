@@ -1,5 +1,5 @@
 /*! Converts the numerical solution from one format to another.
- * \file convert3d.cpp
+ * \file convert.cpp
  */
 
 #include <string>
@@ -11,11 +11,16 @@
 #include "petibm-utilities/grid.h"
 #include "petibm-utilities/misc.h"
 
+#ifndef DIMENSIONS
+#define DIMENSIONS 2
+#endif
+
 
 struct AppCtx
 {
 	char source[PETSC_MAX_PATH_LEN];
 	char destination[PETSC_MAX_PATH_LEN];
+	PetscBool hdf52binary = PETSC_FALSE;
 }; // AppCtx
 
 
@@ -40,6 +45,8 @@ PetscErrorCode AppGetOptions(const char prefix[], AppCtx *ctx)
 	ierr = PetscOptionsGetString(
 		nullptr, prefix, "-destination", ctx->destination,
 		sizeof(ctx->destination), &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetBool(
+		nullptr, prefix, "-hdf52binary", &ctx->hdf52binary, &found); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
 } // AppGetOptions
@@ -48,6 +55,7 @@ PetscErrorCode AppGetOptions(const char prefix[], AppCtx *ctx)
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
+	PetscInt dim = DIMENSIONS;
 	DM da;
 	PetibmGridCtx gridCtx;
 	PetibmFieldCtx fieldCtx;
@@ -66,20 +74,46 @@ int main(int argc, char **argv)
 	bType_x = (fieldCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	bType_y = (fieldCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	bType_z = (fieldCtx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	ierr = DMDACreate3d(PETSC_COMM_WORLD,
-	                    bType_x, bType_y, bType_z,
-	                    DMDA_STENCIL_STAR,
-	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-	                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-	                    1, 1, nullptr, nullptr, nullptr,
-	                    &da); CHKERRQ(ierr);
+	if (dim == 2)
+	{
+		ierr = DMDACreate2d(PETSC_COMM_WORLD,
+		                    bType_x, bType_y,
+		                    DMDA_STENCIL_STAR,
+		                    gridCtx.nx, gridCtx.ny,
+		                    PETSC_DECIDE, PETSC_DECIDE,
+		                    1, 1, nullptr, nullptr,
+		                    &da); CHKERRQ(ierr);
+	}
+	else if (dim == 3)
+	{
+		ierr = DMDACreate3d(PETSC_COMM_WORLD,
+		                    bType_x, bType_y, bType_z,
+		                    DMDA_STENCIL_STAR,
+		                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
+		                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+		                    1, 1, nullptr, nullptr, nullptr,
+		                    &da); CHKERRQ(ierr);
+	}
+	else
+		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
+		        "Support only provided for 2D or 3D DMDA objects");
 
 	// initialize, read, and write
 	ierr = PetibmFieldInitialize(da, field); CHKERRQ(ierr);
-	ierr = PetibmFieldHDF5Read(
-		appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
-	ierr = PetibmFieldBinaryWrite(
-		appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
+	if (appCtx.hdf52binary)
+	{
+		ierr = PetibmFieldHDF5Read(
+			appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
+		ierr = PetibmFieldBinaryWrite(
+			appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
+	}
+	else
+	{
+		ierr = PetibmFieldBinaryRead(
+			appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Write(
+			appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
+	}
 
 	ierr = PetibmFieldDestroy(field); CHKERRQ(ierr);
 	ierr = PetscFinalize(); CHKERRQ(ierr);
