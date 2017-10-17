@@ -56,6 +56,16 @@ PetscErrorCode PetibmFieldInitialize(
 	const PetibmFieldCtx ctx, const PetibmGrid grid, PetibmField &field);
 
 
+/*! Initializes a PetibmField structure based on a given DMDA object.
+ *
+ * Creates the vectors based on the provided DMDA object.
+ *
+ * \param da The DMDA object.
+ * \param field The field to initialize (passed by reference).
+ */
+PetscErrorCode PetibmFieldInitialize(const DM da, PetibmField &field);
+
+
 /*! Sets the value at external boundary points.
  *
  * \param value The value on the external boundaries.
@@ -89,6 +99,16 @@ PetscErrorCode PetibmFieldHDF5Read(
 	const std::string filepath, const std::string name, PetibmField &field);
 
 
+/*! Reads the field values stored in binary format from file.
+ *
+ * \param filepath Path of the input file.
+ * \param name The name of the field.
+ * \param field The PetibmField structure (passed by reference).
+ */
+PetscErrorCode PetibmFieldBinaryRead(
+	const std::string filepath, const std::string name, PetibmField &field);
+
+
 /*! Writes the field values into file in HDF5 format.
  *
  * \param filepath Path of the output file.
@@ -96,6 +116,16 @@ PetscErrorCode PetibmFieldHDF5Read(
  * \param field PetibmField structure.
  */
 PetscErrorCode PetibmFieldHDF5Write(
+	const std::string filepath, const std::string name, const PetibmField field);
+
+
+/*! Writes the field values into file in binary format.
+ *
+ * \param filepath Path of the output file.
+ * \param name Name of the field.
+ * \param field PetibmField structure.
+ */
+PetscErrorCode PetibmFieldBinaryWrite(
 	const std::string filepath, const std::string name, const PetibmField field);
 
 

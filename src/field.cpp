@@ -141,6 +141,27 @@ PetscErrorCode PetibmFieldInitialize(
 } // PetibmFieldInitialize
 
 
+/*! Initializes a PetibmField structure based on a given DMDA object.
+ *
+ * Creates the vectors based on the provided DMDA object.
+ *
+ * \param da The DMDA object.
+ * \param field The field to initialize (passed by reference).
+ */
+PetscErrorCode PetibmFieldInitialize(const DM da, PetibmField &field)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	field.da = da;
+	ierr = DMCreateGlobalVector(da, &field.global); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(da, &field.local); CHKERRQ(ierr);	
+
+	PetscFunctionReturn(0);
+} // PetibmFieldInitialize
+
+
 /*! Sets the value at external boundary points.
  *
  * \param value The value on the external boundaries.
@@ -271,7 +292,7 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
  * \param field The PetibmField structure (passed by reference).
  */
 PetscErrorCode PetibmFieldHDF5Read(
-	std::string filepath, std::string name, PetibmField &field)
+	const std::string filepath, const std::string name, PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -291,6 +312,33 @@ PetscErrorCode PetibmFieldHDF5Read(
 } // PetibmFieldHDF5Read
 
 
+/*! Reads the field values stored in binary format from file.
+ *
+ * \param filepath Path of the input file.
+ * \param name The name of the field.
+ * \param field The PetibmField structure (passed by reference).
+ */
+PetscErrorCode PetibmFieldBinaryRead(
+	const std::string filepath, const std::string name, PetibmField &field)
+{
+	PetscErrorCode ierr;
+	PetscViewer viewer;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscObjectSetName(
+		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
+	ierr = PetscViewerSetType(viewer, PETSCVIEWERBINARY); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_READ); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
+	ierr = VecLoad(field.global, viewer); CHKERRQ(ierr);
+	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldBinaryRead
+
+
 /*! Writes the field values into file in HDF5 format.
  *
  * \param filepath Path of the output file.
@@ -298,7 +346,7 @@ PetscErrorCode PetibmFieldHDF5Read(
  * \param field PetibmField structure.
  */
 PetscErrorCode PetibmFieldHDF5Write(
-	std::string filepath, std::string name, PetibmField field)
+	const std::string filepath, const std::string name, const PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -316,6 +364,33 @@ PetscErrorCode PetibmFieldHDF5Write(
 
 	PetscFunctionReturn(0);
 } // PetibmFieldHDF5Write
+
+
+/*! Writes the field values into file in binary format.
+ *
+ * \param filepath Path of the output file.
+ * \param name Name of the field.
+ * \param field PetibmField structure.
+ */
+PetscErrorCode PetibmFieldBinaryWrite(
+	const std::string filepath, const std::string name, const PetibmField field)
+{
+	PetscErrorCode ierr;
+	PetscViewer viewer;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscObjectSetName(
+		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
+	ierr = PetscViewerSetType(viewer, PETSCVIEWERBINARY); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_WRITE); CHKERRQ(ierr);
+	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
+	ierr = VecView(field.global, viewer); CHKERRQ(ierr);
+	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldBinaryWrite
 
 
 /*! Interpolates field A associated with grid A onto grid B.

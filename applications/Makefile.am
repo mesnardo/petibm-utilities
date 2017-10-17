@@ -1,2 +1,3 @@
-SUBDIRS = interpolation \
+SUBDIRS = convert \
+          interpolation \
           vorticity

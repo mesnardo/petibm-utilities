@@ -58,6 +58,7 @@ AC_CONFIG_FILES([Makefile
                  include/Makefile
                  src/Makefile
                  applications/Makefile
+                 applications/convert/Makefile
                  applications/interpolation/Makefile
                  applications/vorticity/Makefile])
 
