@@ -172,8 +172,8 @@ int main(int argc, char **argv)
 	P = gridCtx.nz;
 	if (!fieldCtx.periodic_x)
 	{
-	  lx[m-1]--;
-	  M--;
+		lx[m-1]--;
+		M--;
 	}
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
@@ -197,8 +197,8 @@ int main(int argc, char **argv)
 	P = gridCtx.nz;
 	if (!fieldCtx.periodic_y)
 	{
-	  ly[n-1]--;
-	  N--;
+		ly[n-1]--;
+		N--;
 	}
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
@@ -222,8 +222,8 @@ int main(int argc, char **argv)
 	P = gridCtx.nz;
 	if (!fieldCtx.periodic_z)
 	{
-	  lz[p-1]--;
-	  P--;
+		lz[p-1]--;
+		P--;
 	}
 	ierr = DMDACreate3d(PETSC_COMM_WORLD,
 	                    bType_x, bType_y, bType_z,
@@ -285,26 +285,32 @@ int main(int argc, char **argv)
 	// loop over the time steps to compute the z-vorticity
 	for (ite=stepCtx.start; ite<=stepCtx.end; ite+=stepCtx.step)
 	{
-	  ierr = PetscPrintf(
+		ierr = PetscPrintf(
 			PETSC_COMM_WORLD, "[time-step %d]\n", ite); CHKERRQ(ierr);
-	  // get time-step directory
-	  std::stringstream ss;
-	  ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;
-	  std::string folder(ss.str());
-	  // read velocity field
-	  ierr = PetibmFieldHDF5Read(folder+"/ux.h5", "ux", ux); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Read(folder+"/uy.h5", "uy", uy); CHKERRQ(ierr);
-	  ierr = PetibmFieldHDF5Read(folder+"/uz.h5", "uz", uz); CHKERRQ(ierr);
-	  // compute the x-vorticity field
-	  if (compute_wx)
-	  {
+		// get time-step directory
+		std::stringstream ss;
+		ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;
+		std::string folder(ss.str());
+		// read velocity field
+		ierr = PetibmFieldHDF5Read(folder+"/ux.h5", "ux", ux); CHKERRQ(ierr);
+		if (compute_wz)
+		{
+			ierr = PetibmFieldHDF5Read(folder+"/uy.h5", "uy", uy); CHKERRQ(ierr);
+		}
+		if (compute_wx)
+		{
+			ierr = PetibmFieldHDF5Read(folder+"/uz.h5", "uz", uz); CHKERRQ(ierr);
+		}
+		// compute the x-vorticity field
+		if (compute_wx)
+		{
 			ierr = PetibmVorticityXComputeField(
 				griduy, griduz, uy, uz, wx); CHKERRQ(ierr);
 			ierr = PetibmFieldHDF5Write(folder+"/wx.h5", "wx", wx); CHKERRQ(ierr);
 		}
-	  // compute the z-vorticity field
-	  if (compute_wz)
-	  {
+		// compute the z-vorticity field
+		if (compute_wz)
+		{
 			ierr = PetibmVorticityZComputeField(
 				gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
 			ierr = PetibmFieldHDF5Write(folder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
