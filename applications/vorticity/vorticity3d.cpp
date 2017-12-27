@@ -4,6 +4,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <sys/stat.h>
 
 #include <petscsys.h>
 #include <petscdmda.h>
@@ -18,7 +19,7 @@
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
-	std::string directory, gridpath;
+	std::string directory, outdir, gridpath;
 	PetibmGrid grid, gridux, griduy, griduz, gridwx, gridwz;
 	PetibmGridCtx gridCtx, griduxCtx, griduyCtx, griduzCtx;
 	PetibmField ux, uy, uz, wx, wz;
@@ -44,6 +45,12 @@ int main(int argc, char **argv)
 	ierr = PetibmTimeStepGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &gridCtx); CHKERRQ(ierr);
 	ierr = PetibmFieldGetOptions(nullptr, &fieldCtx); CHKERRQ(ierr);
+	{
+		char dir[PETSC_MAX_PATH_LEN];
+		ierr = PetscOptionsGetString(nullptr, nullptr, "-output_directory",
+		                             dir, sizeof(dir), &found); CHKERRQ(ierr);
+		outdir = (!found) ? directory : dir;
+	}
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-compute_wx", &compute_wx, &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetBool(
@@ -119,7 +126,8 @@ int main(int argc, char **argv)
 		ierr = PetibmVorticityXComputeGrid(griduy, griduz, gridwx); CHKERRQ(ierr);
 		if (rank == 0)
 		{
-			gridpath = directory+"/grids/wx.h5";
+			gridpath = outdir+"/grids/wx.h5";
+			mkdir((outdir+"/grids").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 			ierr = PetibmGridHDF5Write(gridpath, gridwx); CHKERRQ(ierr);
 		}
 	}
@@ -136,7 +144,8 @@ int main(int argc, char **argv)
 		ierr = PetibmVorticityZComputeGrid(gridux, griduy, gridwz); CHKERRQ(ierr);
 		if (rank == 0)
 		{
-			gridpath = directory+"/grids/wz.h5";
+			gridpath = outdir+"/grids/wz.h5";
+			mkdir((outdir+"/grids").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 			ierr = PetibmGridHDF5Write(gridpath, gridwz); CHKERRQ(ierr);
 		}
 	}
@@ -301,19 +310,24 @@ int main(int argc, char **argv)
 		{
 			ierr = PetibmFieldHDF5Read(folder+"/uz.h5", "uz", uz); CHKERRQ(ierr);
 		}
+		// get time-step directory to save
+		std::stringstream ssout;
+		ssout << outdir << "/" << std::setfill('0') << std::setw(7) << ite;
+		std::string outfolder(ssout.str());
+		mkdir(outfolder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 		// compute the x-vorticity field
 		if (compute_wx)
 		{
 			ierr = PetibmVorticityXComputeField(
 				griduy, griduz, uy, uz, wx); CHKERRQ(ierr);
-			ierr = PetibmFieldHDF5Write(folder+"/wx.h5", "wx", wx); CHKERRQ(ierr);
+			ierr = PetibmFieldHDF5Write(outfolder+"/wx.h5", "wx", wx); CHKERRQ(ierr);
 		}
 		// compute the z-vorticity field
 		if (compute_wz)
 		{
 			ierr = PetibmVorticityZComputeField(
 				gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
-			ierr = PetibmFieldHDF5Write(folder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
+			ierr = PetibmFieldHDF5Write(outfolder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
 		}
 	}
 
