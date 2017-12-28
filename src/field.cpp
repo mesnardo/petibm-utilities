@@ -3,6 +3,7 @@
  */
 
 #include <vector>
+#include <cstring>
 
 #include <petscviewerhdf5.h>
 
@@ -283,6 +284,38 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 
 	PetscFunctionReturn(0);
 } // PetibmFieldDestroy
+
+
+/*! Reads the field values stored in given format from file.
+ *
+ * \param filepath Path of the input file.
+ * \param name The name of the field.
+ * \param viewerType PETSc viewer type.
+ * \param field The PetibmField structure (passed by reference).
+ */
+PetscErrorCode PetibmFieldRead(const std::string filepath,
+                               const std::string name,
+                               const PetscViewerType viewerType,
+                               PetibmField &field)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	if (std::strcmp(viewerType, PETSCVIEWERBINARY) == 0)
+	{
+		ierr = PetibmFieldBinaryRead(filepath, name, field); CHKERRQ(ierr);
+	}
+	else if (std::strcmp(viewerType, PETSCVIEWERHDF5) == 0)
+	{
+		ierr = PetibmFieldHDF5Read(filepath, name, field); CHKERRQ(ierr);
+	}
+	else
+		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
+		        "Function only supports Binary and HDF5 viewers");
+
+	PetscFunctionReturn(0);
+} // PetibmFieldRead
 
 
 /*! Reads the field values stored in HDF5 format from file.

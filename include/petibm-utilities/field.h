@@ -89,6 +89,19 @@ PetscErrorCode PetibmFieldGlobalToLocal(PetibmField &field);
 PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 
 
+/*! Reads the field values stored in given format from file.
+ *
+ * \param filepath Path of the input file.
+ * \param name The name of the field.
+ * \param viewerType PETSc viewer type.
+ * \param field The PetibmField structure (passed by reference).
+ */
+PetscErrorCode PetibmFieldRead(const std::string filepath,
+                               const std::string name,
+                               const PetscViewerType viewerType,
+                               PetibmField &field);
+
+
 /*! Reads the field values stored in HDF5 format from file.
  *
  * \param filepath Path of the input file.

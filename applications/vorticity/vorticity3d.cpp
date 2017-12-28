@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <sys/stat.h>
+#include <functional>
 
 #include <petscsys.h>
 #include <petscdmda.h>
@@ -34,7 +35,8 @@ int main(int argc, char **argv)
 	PetscMPIInt rank;
 	PetscBool found,
 	          compute_wx=PETSC_FALSE,
-	          compute_wz=PETSC_FALSE;
+	          compute_wz=PETSC_FALSE,
+	          binary_format=PETSC_FALSE;
 
 	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
 
@@ -55,6 +57,8 @@ int main(int argc, char **argv)
 		nullptr, nullptr, "-compute_wx", &compute_wx, &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-compute_wz", &compute_wz, &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-binary_format", &binary_format, &found); CHKERRQ(ierr);
 
 	// read cell-centered gridline stations
 	grid.dim = 3;
@@ -291,6 +295,14 @@ int main(int argc, char **argv)
 		ierr = DMCreateLocalVector(wz.da, &wz.local); CHKERRQ(ierr);
 	}
 
+	std::string extension = ".h5";
+	PetscViewerType viewerType = PETSCVIEWERHDF5;
+	if (binary_format == PETSC_TRUE)
+	{
+		extension = ".dat";
+		viewerType = PETSCVIEWERBINARY;
+	}
+
 	// loop over the time steps to compute the z-vorticity
 	for (ite=stepCtx.start; ite<=stepCtx.end; ite+=stepCtx.step)
 	{
@@ -301,14 +313,17 @@ int main(int argc, char **argv)
 		ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;
 		std::string folder(ss.str());
 		// read velocity field
-		ierr = PetibmFieldHDF5Read(folder+"/ux.h5", "ux", ux); CHKERRQ(ierr);
+		ierr = PetibmFieldRead(
+			folder+"/ux"+extension, "ux", viewerType, ux); CHKERRQ(ierr);
 		if (compute_wz)
 		{
-			ierr = PetibmFieldHDF5Read(folder+"/uy.h5", "uy", uy); CHKERRQ(ierr);
+			ierr = PetibmFieldRead(
+				folder+"/uy"+extension, "uy", viewerType, uy); CHKERRQ(ierr);
 		}
 		if (compute_wx)
 		{
-			ierr = PetibmFieldHDF5Read(folder+"/uz.h5", "uz", uz); CHKERRQ(ierr);
+			ierr = PetibmFieldRead(
+				folder+"/uz"+extension, "uz", viewerType, uz); CHKERRQ(ierr);
 		}
 		// get time-step directory to save
 		std::stringstream ssout;
