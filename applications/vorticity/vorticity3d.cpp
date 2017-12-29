@@ -20,7 +20,7 @@
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
-	std::string directory, outdir, gridpath;
+	std::string directory, outdir, griddir, gridpath;
 	PetibmGrid grid, gridux, griduy, griduz, gridwx, gridwz;
 	PetibmGridCtx gridCtx, griduxCtx, griduyCtx, griduzCtx;
 	PetibmField ux, uy, uz, wx, wz;
@@ -53,6 +53,12 @@ int main(int argc, char **argv)
 		                             dir, sizeof(dir), &found); CHKERRQ(ierr);
 		outdir = (!found) ? directory : dir;
 	}
+	{
+		char dir[PETSC_MAX_PATH_LEN];
+		ierr = PetscOptionsGetString(nullptr, nullptr, "-grid_directory",
+		                             dir, sizeof(dir), &found); CHKERRQ(ierr);
+		griddir = (!found) ? directory+"/grids" : dir;
+	}
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-compute_wx", &compute_wx, &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetBool(
@@ -68,7 +74,7 @@ int main(int argc, char **argv)
 		PETSC_COMM_SELF, gridCtx.ny, &grid.y.coords); CHKERRQ(ierr);
 	ierr = VecCreateSeq(
 		PETSC_COMM_SELF, gridCtx.nz, &grid.z.coords); CHKERRQ(ierr);
-	gridpath = directory+"/grids/cell-centered.h5";
+	gridpath = griddir+"/cell-centered.h5";
 	ierr = PetibmGridlineHDF5Read(gridpath, "x", grid.x.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "y", grid.y.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "z", grid.z.coords); CHKERRQ(ierr);
@@ -83,7 +89,7 @@ int main(int argc, char **argv)
 		PETSC_COMM_SELF, griduxCtx.ny, &gridux.y.coords); CHKERRQ(ierr);
 	ierr = VecCreateSeq(
 		PETSC_COMM_SELF, griduxCtx.nz, &gridux.z.coords); CHKERRQ(ierr);
-	gridpath = directory+"/grids/staggered-x.h5";
+	gridpath = griddir+"/staggered-x.h5";
 	ierr = PetibmGridlineHDF5Read(gridpath, "x", gridux.x.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "y", gridux.y.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "z", gridux.z.coords); CHKERRQ(ierr);
@@ -98,7 +104,7 @@ int main(int argc, char **argv)
 		PETSC_COMM_SELF, griduyCtx.ny, &griduy.y.coords); CHKERRQ(ierr);
 	ierr = VecCreateSeq(
 		PETSC_COMM_SELF, griduyCtx.nz, &griduy.z.coords); CHKERRQ(ierr);
-	gridpath = directory+"/grids/staggered-y.h5";
+	gridpath = griddir+"/staggered-y.h5";
 	ierr = PetibmGridlineHDF5Read(gridpath, "x", griduy.x.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "y", griduy.y.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "z", griduy.z.coords); CHKERRQ(ierr);
@@ -113,7 +119,7 @@ int main(int argc, char **argv)
 		PETSC_COMM_SELF, griduzCtx.ny, &griduz.y.coords); CHKERRQ(ierr);
 	ierr = VecCreateSeq(
 		PETSC_COMM_SELF, griduzCtx.nz, &griduz.z.coords); CHKERRQ(ierr);
-	gridpath = directory+"/grids/staggered-z.h5";
+	gridpath = griddir+"/staggered-z.h5";
 	ierr = PetibmGridlineHDF5Read(gridpath, "x", griduz.x.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "y", griduz.y.coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(gridpath, "z", griduz.z.coords); CHKERRQ(ierr);
