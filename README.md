@@ -1,7 +1,7 @@
 # PetIBM - utilities
 ---
 
-A collection of scripts and C++ codes to pre- and post-process the numerical solution of a PetIBM (0.2) simulation.
+A collection of scripts and C++ codes to pre- and post-process the numerical solution of a PetIBM (0.3) simulation.
 
 
 ## Dependencies (last tested)

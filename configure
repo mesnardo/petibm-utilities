@@ -18114,7 +18114,7 @@ fi
 
 if test "$HAVE_PETSCVARIABLES" = no; then
   as_fn_error $? "could not find file petscvariables;
-please use PETSc-3.7" "$LINENO" 5
+please use PETSc-3.8" "$LINENO" 5
 fi
 
 PETSC_CC_INCLUDES=`grep "PETSC_CC_INCLUDES =" $PETSCVARIABLES | sed -e 's/.*=//' -e 's/^ \t*//'`

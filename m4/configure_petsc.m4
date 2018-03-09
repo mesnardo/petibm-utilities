@@ -44,7 +44,7 @@ AC_CHECK_FILE([$PETSCVARIABLES],
               [HAVE_PETSCVARIABLES=no])
 if test "$HAVE_PETSCVARIABLES" = no; then
   AC_MSG_ERROR([could not find file petscvariables;
-please use PETSc-3.7])
+please use PETSc-3.8])
 fi
 
 PETSC_CC_INCLUDES=`grep "PETSC_CC_INCLUDES =" $PETSCVARIABLES | sed -e 's/.*=//' -e 's/^[ \t]*//'`
