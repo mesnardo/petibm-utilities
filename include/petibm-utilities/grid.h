@@ -16,6 +16,7 @@
 struct PetibmGridCtx
 {
 	char path[PETSC_MAX_PATH_LEN];  /// path of the file containing the grid
+	char name[PETSC_MAX_PATH_LEN];  /// name of the grid
 	PetscInt nx = 0,  /// number of points in the x-direction
 	         ny = 0,  /// number of points in the y-direction
 	         nz = 0;  /// number of points in the z-direction
@@ -52,6 +53,10 @@ struct PetibmGrid
  */
 PetscErrorCode PetibmGridGetOptions(
 	const char prefix[], PetibmGridCtx *ctx);
+
+
+PetscErrorCode PetibmGridCtxPrintf(
+	const std::string name, const PetibmGridCtx ctx);
 
 
 /*! Initializes the grid based on the context.
@@ -155,10 +160,11 @@ PetscErrorCode PetibmGridlineDestroy(PetibmGridline &line);
  * The gridlines should be stored in HDF5 format in the same file.
  *
  * \param filepath Path of the input file.
+ * \param varname Name of variable (group name in the HDF5).
  * \param grid The PetibmGrid object to fill (passed by reference).
  */
 PetscErrorCode PetibmGridHDF5Read(
-	const std::string filepath, PetibmGrid &grid);
+	const std::string filepath, const std::string varname, PetibmGrid &grid);
 
 
 /*! Reads the gridline stations from a file.
@@ -166,16 +172,19 @@ PetscErrorCode PetibmGridHDF5Read(
  * The stations along the gridline should be stored in HDF5 format.
  *
  * \param filepath The path of the input file.
+ * \param varname The name of the variable.
  * \param name The name of the gridline (the direction).
  * \param line The sequential vector to fill (passed by reference).
  */
 PetscErrorCode PetibmGridlineHDF5Read(
-	std::string filepath, std::string name, Vec &line);
+	const std::string filepath, const std::string varname,
+	const std::string name, Vec &line);
 
 /*! Writes the gridlines into file in HDF5 format.
  *
  * \param filepath Path of the output file.
+ * \param varname Name of the grid.
  * \param grid The PetibmGrid structure containing the gridlines.
  */
 PetscErrorCode PetibmGridHDF5Write(
-	const std::string filepath, const PetibmGrid grid);
+	const std::string filepath, const std::string varname, const PetibmGrid grid);

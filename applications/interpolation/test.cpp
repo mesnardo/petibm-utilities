@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 		ierr = DMDAVecRestoreArray(gridA.z.da, gridA.z.coords, &zA); CHKERRQ(ierr);
 	}
 	ierr = PetibmGridSetBoundaryPoints(starts, ends, gridA); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Write("gridA.h5", gridA); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Write("gridA.h5", "gridA", gridA); CHKERRQ(ierr);
 
 	fieldACtx.bc_value = 1.2345;
 	ierr = PetibmFieldInitialize(fieldACtx, gridA, fieldA); CHKERRQ(ierr);
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 		ierr = DMDAVecRestoreArray(gridB.z.da, gridB.z.coords, &zB); CHKERRQ(ierr);
 	}
 	ierr = PetibmGridSetBoundaryPoints(starts, ends, gridB); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Write("gridB.h5", gridB); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Write("gridB.h5", "gridB", gridB); CHKERRQ(ierr);
 
 	ierr = PetibmFieldInitialize(fieldBCtx, gridB, fieldB); CHKERRQ(ierr);
 	ierr = PetscObjectViewFromOptions(
@@ -153,8 +153,8 @@ int main(int argc, char **argv)
 	ierr = PetibmFieldInterpolate(
 		gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
 
-	ierr = PetibmFieldHDF5Write("fieldA.h5", "phi", fieldA); CHKERRQ(ierr);
-	ierr = PetibmFieldHDF5Write("fieldB.h5", "phi", fieldB); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Write("fieldA.h5", "fieldA", fieldA); CHKERRQ(ierr);
+	ierr = PetibmFieldHDF5Write("fieldB.h5", "fieldA", fieldB); CHKERRQ(ierr);
 
 	ierr = PetibmFieldDestroy(fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);

@@ -42,6 +42,10 @@ PetscErrorCode PetibmFieldGetOptions(
 	const char prefix[], PetibmFieldCtx *ctx);
 
 
+PetscErrorCode PetibmFieldCtxPrintf(
+	const std::string name, const PetibmFieldCtx ctx);
+
+
 /*! Initializes a PetibmField structure based on the grid.
  *
  * Creates the DMDA object and local and global vectors associated with it.

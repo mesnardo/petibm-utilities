@@ -56,6 +56,25 @@ PetscErrorCode PetibmFieldGetOptions(
 } // PetibmFieldGetOptions
 
 
+PetscErrorCode PetibmFieldCtxPrintf(
+	const std::string name, const PetibmFieldCtx ctx)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscPrintf(PETSC_COMM_WORLD, "+ %s:\n", name.c_str()); CHKERRQ(ierr);
+	ierr = PetscPrintf(PETSC_COMM_WORLD, "\t- name: %s\n",
+	                   ctx.name); CHKERRQ(ierr);
+	ierr = PetscPrintf(PETSC_COMM_WORLD, "\t- path: %s\n",
+	                   ctx.path); CHKERRQ(ierr);
+	ierr = PetscPrintf(PETSC_COMM_WORLD, "\t- boundary value: %f\n",
+	                   ctx.bc_value); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldCtxPrintf
+
+
 /*! Initializes a PetibmField structure based on the grid.
  *
  * Creates the DMDA object and local and global vectors associated with it.
@@ -334,10 +353,8 @@ PetscErrorCode PetibmFieldHDF5Read(
 
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
-	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
-	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_READ); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerHDF5Open(
+		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
 	ierr = VecLoad(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -388,10 +405,8 @@ PetscErrorCode PetibmFieldHDF5Write(
 
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
-	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
-	ierr = PetscViewerSetType(viewer, PETSCVIEWERHDF5); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_WRITE); CHKERRQ(ierr);
-	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
+	ierr = PetscViewerHDF5Open(
+		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_APPEND, &viewer); CHKERRQ(ierr);
 	ierr = VecView(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
