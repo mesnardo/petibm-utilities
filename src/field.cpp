@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <cstring>
+#include <fstream>
 
 #include <petscviewerhdf5.h>
 
@@ -153,6 +154,8 @@ PetscErrorCode PetibmFieldInitialize(
 		                    lx, ly,
 		                    &field.da); CHKERRQ(ierr);
 	}
+	ierr = DMSetFromOptions(field.da); CHKERRQ(ierr);
+	ierr = DMSetUp(field.da); CHKERRQ(ierr);
 
   ierr = DMCreateGlobalVector(field.da, &field.global); CHKERRQ(ierr);
   ierr = DMCreateLocalVector(field.da, &field.local); CHKERRQ(ierr);
@@ -400,13 +403,20 @@ PetscErrorCode PetibmFieldHDF5Write(
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
+	PetscFileMode mode;
 
 	PetscFunctionBeginUser;
+
+	std::ifstream infile(filepath.c_str());
+	if (infile.good())
+		mode = FILE_MODE_APPEND;
+	else
+		mode = FILE_MODE_WRITE;
 
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
 	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_APPEND, &viewer); CHKERRQ(ierr);
+		PETSC_COMM_SELF, filepath.c_str(), mode, &viewer); CHKERRQ(ierr);
 	ierr = VecView(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 

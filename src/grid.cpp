@@ -127,12 +127,16 @@ PetscErrorCode PetibmGridInitialize(
 	ierr = DMDACreate1d(PETSC_COMM_SELF,
 	                    DM_BOUNDARY_GHOSTED, ctx.nx, 1, 1, nullptr,
 	                    &grid.x.da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(grid.x.da); CHKERRQ(ierr);
+	ierr = DMSetUp(grid.x.da); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(grid.x.da, &grid.x.coords); CHKERRQ(ierr);
 	ierr = DMCreateLocalVector(grid.x.da, &grid.x.local); CHKERRQ(ierr);
 	// gridline in y-direction
 	ierr = DMDACreate1d(PETSC_COMM_WORLD,
 	                    DM_BOUNDARY_GHOSTED, ctx.ny, 1, 1, nullptr,
 	                    &grid.y.da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(grid.y.da); CHKERRQ(ierr);
+	ierr = DMSetUp(grid.y.da); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(grid.y.da, &grid.y.coords); CHKERRQ(ierr);
 	ierr = DMCreateLocalVector(grid.y.da, &grid.y.local); CHKERRQ(ierr);
 	if (ctx.nz > 0)
@@ -142,6 +146,8 @@ PetscErrorCode PetibmGridInitialize(
 		ierr = DMDACreate1d(PETSC_COMM_SELF,
 		                    DM_BOUNDARY_GHOSTED, ctx.nz, 1, 1, nullptr,
 		                    &grid.z.da); CHKERRQ(ierr);
+		ierr = DMSetFromOptions(grid.z.da); CHKERRQ(ierr);
+		ierr = DMSetUp(grid.z.da); CHKERRQ(ierr);
 		ierr = DMCreateGlobalVector(grid.z.da, &grid.z.coords); CHKERRQ(ierr);
 		ierr = DMCreateLocalVector(grid.z.da, &grid.z.local); CHKERRQ(ierr);
 	}
@@ -228,6 +234,8 @@ PetscErrorCode PetibmGridlineInitialize(
 		lx[0] = M;
 		ierr = DMDACreate1d(
 			PETSC_COMM_SELF, b, M, 1, 1, nullptr, &line.da); CHKERRQ(ierr);
+		ierr = DMSetFromOptions(line.da); CHKERRQ(ierr);
+		ierr = DMSetUp(line.da); CHKERRQ(ierr);
 	}
 	else if (m == size)
 	{	
@@ -245,6 +253,8 @@ PetscErrorCode PetibmGridlineInitialize(
 		                     lx, 1, MPIU_INT, PETSC_COMM_WORLD); CHKERRQ(ierr);
 		ierr = DMDACreate1d(
 			PETSC_COMM_WORLD, b, M, 1, 1, lx, &line.da); CHKERRQ(ierr);
+		ierr = DMSetFromOptions(line.da); CHKERRQ(ierr);
+		ierr = DMSetUp(line.da); CHKERRQ(ierr);
 	}
 	else
 		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,

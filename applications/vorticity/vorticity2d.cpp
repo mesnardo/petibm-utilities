@@ -109,6 +109,8 @@ int main(int argc, char **argv)
 	                    gridCtx.nx, gridCtx.ny,
 	                    PETSC_DECIDE, PETSC_DECIDE, 1, 1, nullptr, nullptr,
 	                    &da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
 	// get info from base DMDA for velocity components and z-vorticity
 	ierr = DMDAGetOwnershipRanges(da, &plx, &ply, nullptr); CHKERRQ(ierr);
 	ierr = DMDAGetInfo(da,
@@ -135,6 +137,8 @@ int main(int argc, char **argv)
 	                    DMDA_STENCIL_BOX,
 	                    M, N, m, n, 1, 1, lx, ly,
 	                    &ux.da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(ux.da); CHKERRQ(ierr);
+	ierr = DMSetUp(ux.da);
 	ierr = PetscFree(lx); CHKERRQ(ierr);
 	ierr = PetscFree(ly); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(ux.da, &ux.global); CHKERRQ(ierr);
@@ -156,6 +160,8 @@ int main(int argc, char **argv)
 	                    DMDA_STENCIL_BOX,
 	                    M, N, m, n, 1, 1, lx, ly,
 	                    &uy.da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(uy.da); CHKERRQ(ierr);
+	ierr = DMSetUp(uy.da); CHKERRQ(ierr);
 	ierr = PetscFree(lx); CHKERRQ(ierr);
 	ierr = PetscFree(ly); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(uy.da, &uy.global); CHKERRQ(ierr);
@@ -172,6 +178,8 @@ int main(int argc, char **argv)
 	                    DMDA_STENCIL_STAR,
 	                    gridCtx.nx-1, gridCtx.ny-1, m, n, 1, 1, lx, ly,
 	                    &wz.da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(wz.da); CHKERRQ(ierr);
+	ierr = DMSetUp(wz.da); CHKERRQ(ierr);
 	ierr = PetscFree(lx); CHKERRQ(ierr);
 	ierr = PetscFree(ly); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(wz.da, &wz.global); CHKERRQ(ierr);

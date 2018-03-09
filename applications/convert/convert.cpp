@@ -97,6 +97,8 @@ int main(int argc, char **argv)
 	else
 		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
 		        "Support only provided for 2D or 3D DMDA objects");
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
 
 	// initialize, read, and write
 	ierr = PetibmFieldInitialize(da, field); CHKERRQ(ierr);
