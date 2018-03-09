@@ -4,10 +4,10 @@
 A collection of scripts and C++ codes to pre- and post-process the numerical solution of a PetIBM (0.2) simulation.
 
 
-## Dependencies
+## Dependencies (last tested)
 ---
 
-* PETSc (3.7.4)
+* PETSc (3.8.1)
 
 
 ## Contents
