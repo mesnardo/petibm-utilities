@@ -166,7 +166,7 @@ PetscErrorCode PetibmFieldInterpolate(
  * \param gridB The grid to interpolate on.
  * \param fieldB The resulting interpolated field (passed by reference).
  */
-PetscErrorCode PetibmFieldInterpolate2D(
+PetscErrorCode PetibmFieldInterpolate2d(
 	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB);
 
 
@@ -179,5 +179,17 @@ PetscErrorCode PetibmFieldInterpolate2D(
  * \param gridB The grid to interpolate on.
  * \param fieldB The resulting interpolated field (passed by reference).
  */
-PetscErrorCode PetibmFieldInterpolate3D(
+PetscErrorCode PetibmFieldInterpolate3d(
 	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB);
+
+PetscErrorCode PetibmFieldDMDACreate2d(
+	const PetibmGridCtx gridCtx, const PetibmFieldCtx fieldCtx, DM &da);
+
+PetscErrorCode PetibmFieldDMDACreate3d(
+	const PetibmGridCtx gridCtx, const PetibmFieldCtx fieldCtx, DM &da);
+
+PetscErrorCode PetibmFieldDMDACreate2d(
+	const std::string name, const DM da_in, DM &da);
+
+PetscErrorCode PetibmFieldDMDACreate3d(
+	const std::string name, const DM da_in, DM &da);

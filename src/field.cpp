@@ -21,19 +21,10 @@ PetscErrorCode PetibmFieldGetOptions(
 	const char prefix[], PetibmFieldCtx *ctx)
 {
 	PetscErrorCode ierr;
-	char path[PETSC_MAX_PATH_LEN];
 	PetscBool found;
 
 	PetscFunctionBeginUser;
 
-	// get path of configuration file
-	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
-	                             path, sizeof(path), &found); CHKERRQ(ierr);
-	if (found)
-	{
-		ierr = PetscOptionsInsertFile(
-			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
-	}
 	// get path of file containing field values
 	ierr = PetscOptionsGetString(nullptr, prefix, "-path", ctx->path,
 	                             sizeof(ctx->path), &found); CHKERRQ(ierr);
@@ -467,12 +458,12 @@ PetscErrorCode PetibmFieldInterpolate(
 
 	if (gridA.dim == 2)
 	{
-		ierr = PetibmFieldInterpolate2D(
+		ierr = PetibmFieldInterpolate2d(
 			gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
 	}
 	else if (gridA.dim == 3)
 	{
-		ierr = PetibmFieldInterpolate3D(
+		ierr = PetibmFieldInterpolate3d(
 			gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
 	}
 	else
@@ -492,7 +483,7 @@ PetscErrorCode PetibmFieldInterpolate(
  * \param gridB The grid to interpolate on.
  * \param fieldB The resulting interpolated field (passed by reference).
  */
-PetscErrorCode PetibmFieldInterpolate2D(
+PetscErrorCode PetibmFieldInterpolate2d(
 	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB)
 {
 	PetscErrorCode ierr;
@@ -541,7 +532,7 @@ PetscErrorCode PetibmFieldInterpolate2D(
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // PetibmFieldInterpolate2D
+} // PetibmFieldInterpolate2d
 
 
 /*! Interpolates a 3D field A associated with grid A onto grid B.
@@ -553,7 +544,7 @@ PetscErrorCode PetibmFieldInterpolate2D(
  * \param gridB The grid to interpolate on.
  * \param fieldB The resulting interpolated field (passed by reference).
  */
-PetscErrorCode PetibmFieldInterpolate3D(
+PetscErrorCode PetibmFieldInterpolate3d(
 	PetibmGrid gridA, PetibmField fieldA, PetibmGrid gridB, PetibmField &fieldB)
 {
 	PetscErrorCode ierr;
@@ -619,4 +610,180 @@ PetscErrorCode PetibmFieldInterpolate3D(
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 
 	PetscFunctionReturn(0);
-} // PetibmFieldInterpolate3D
+} // PetibmFieldInterpolate3d
+
+
+PetscErrorCode PetibmFieldDMDACreate2d(
+	const PetibmGridCtx gridCtx, const PetibmFieldCtx fieldCtx, DM &da)
+{
+	PetscErrorCode ierr;
+	DMBoundaryType bType_x, bType_y;
+
+	PetscFunctionBeginUser;
+
+	bType_x = (fieldCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (fieldCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	ierr = DMDACreate2d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y,
+	                    DMDA_STENCIL_STAR,
+	                    gridCtx.nx, gridCtx.ny,
+	                    PETSC_DECIDE, PETSC_DECIDE,
+	                    1, 1,
+	                    nullptr, nullptr,
+	                    &da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldDMDACreate2d
+
+
+PetscErrorCode PetibmFieldDMDACreate3d(
+	const PetibmGridCtx gridCtx, const PetibmFieldCtx fieldCtx, DM &da)
+{
+	PetscErrorCode ierr;
+	DMBoundaryType bType_x, bType_y, bType_z;
+
+	PetscFunctionBeginUser;
+
+	bType_x = (fieldCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_y = (fieldCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	bType_z = (fieldCtx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y, bType_z,
+	                    DMDA_STENCIL_STAR,
+	                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
+	                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
+	                    1, 1,
+	                    nullptr, nullptr, nullptr,
+	                    &da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldDMDACreate3d
+
+
+PetscErrorCode PetibmFieldDMDACreate2d(
+	const std::string name, const DM da_in, DM &da)
+{
+	PetscErrorCode ierr;
+	const PetscInt *plx, *ply;
+	PetscInt *lx, *ly;
+	PetscInt M, N, m, n;
+	DMBoundaryType bType_x, bType_y;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAGetOwnershipRanges(da_in, &plx, &ply, nullptr); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da_in,
+	                   nullptr,
+	                   &M, &N, nullptr,
+	                   &m, &n, nullptr,
+	                   nullptr, nullptr,
+	                   &bType_x, &bType_y, nullptr,
+	                   nullptr); CHKERRQ(ierr);
+	// create DMDA and vector for velocity in x-direction
+	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
+	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
+	if (name == "ux" and bType_x != DM_BOUNDARY_PERIODIC)
+	{
+		lx[m-1]--;
+		M--;
+	}
+	if (name == "uy" and bType_y != DM_BOUNDARY_PERIODIC)
+	{
+		ly[n-1]--;
+		N--;
+	}
+	if (name == "wz")
+	{
+		lx[m-1]--;
+		ly[n-1]--;
+		M--;
+		N--;
+	}
+	ierr = DMDACreate2d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y,
+	                    DMDA_STENCIL_BOX,
+	                    M, N, m, n, 1, 1, lx, ly,
+	                    &da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
+	ierr = PetscFree(lx); CHKERRQ(ierr);
+	ierr = PetscFree(ly); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldDMDACreate2d
+
+
+PetscErrorCode PetibmFieldDMDACreate3d(
+	const std::string name, const DM da_in, DM &da)
+{
+	PetscErrorCode ierr;
+	const PetscInt *plx, *ply, *plz;
+	PetscInt *lx, *ly, *lz;
+	PetscInt M, N, P, m, n, p;
+	DMBoundaryType bType_x, bType_y, bType_z;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAGetOwnershipRanges(da_in, &plx, &ply, &plz); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(da_in,
+	                   nullptr,
+	                   &M, &N, &P,
+	                   &m, &n, &p,
+	                   nullptr, nullptr,
+	                   &bType_x, &bType_y, &bType_z,
+	                   nullptr); CHKERRQ(ierr);
+	// create DMDA and vector for velocity in x-direction
+	ierr = PetscMalloc(m*sizeof(*lx), &lx); CHKERRQ(ierr);
+	ierr = PetscMalloc(n*sizeof(*ly), &ly); CHKERRQ(ierr);
+	ierr = PetscMalloc(p*sizeof(*lz), &lz); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lx, plx, m*sizeof(*lx)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(ly, ply, n*sizeof(*ly)); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lz, plz, p*sizeof(*lz)); CHKERRQ(ierr);
+	if (name == "ux" and bType_x != DM_BOUNDARY_PERIODIC)
+	{
+		lx[m-1]--;
+		M--;
+	}
+	if (name == "uy" and bType_y != DM_BOUNDARY_PERIODIC)
+	{
+		ly[n-1]--;
+		N--;
+	}
+	if (name == "uz" and bType_z != DM_BOUNDARY_PERIODIC)
+	{
+		lz[p-1]--;
+		P--;
+	}
+	if (name == "wx")
+	{
+		ly[n-1]--;
+		lz[p-1]--;
+		N--;
+		P--;
+	}
+	if (name == "wz")
+	{
+		lx[m-1]--;
+		ly[n-1]--;
+		M--;
+		N--;
+	}
+	ierr = DMDACreate3d(PETSC_COMM_WORLD,
+	                    bType_x, bType_y, bType_z,
+	                    DMDA_STENCIL_BOX,
+	                    M, N, P, m, n, p, 1, 1, lx, ly, lz,
+	                    &da); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
+	ierr = DMSetUp(da); CHKERRQ(ierr);
+	ierr = PetscFree(lx); CHKERRQ(ierr);
+	ierr = PetscFree(ly); CHKERRQ(ierr);
+	ierr = PetscFree(lz); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldDMDACreate3d

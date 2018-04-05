@@ -166,6 +166,8 @@ PetscErrorCode PetibmGridlineDestroy(PetibmGridline &line);
 PetscErrorCode PetibmGridHDF5Read(
 	const std::string filepath, const std::string varname, PetibmGrid &grid);
 
+PetscErrorCode PetibmGridHDF5Read(
+	const std::string filepath, PetibmGrid &grid);
 
 /*! Reads the gridline stations from a file.
  *
@@ -180,6 +182,9 @@ PetscErrorCode PetibmGridlineHDF5Read(
 	const std::string filepath, const std::string varname,
 	const std::string name, Vec &line);
 
+PetscErrorCode PetibmGridlineHDF5Read(
+	const std::string filepath, const std::string name, Vec &line);
+
 /*! Writes the gridlines into file in HDF5 format.
  *
  * \param filepath Path of the output file.
@@ -188,3 +193,8 @@ PetscErrorCode PetibmGridlineHDF5Read(
  */
 PetscErrorCode PetibmGridHDF5Write(
 	const std::string filepath, const std::string varname, const PetibmGrid grid);
+
+PetscErrorCode PetibmGridHDF5Write(
+	const std::string filepath, const PetibmGrid grid);
+
+PetscErrorCode PetibmGridCreateSeq(PetibmGridCtx ctx, PetibmGrid &grid);

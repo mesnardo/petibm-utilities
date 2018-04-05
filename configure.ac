@@ -53,6 +53,18 @@ LDFLAGS_PREPEND($LDFLAGS_)
 
 CONFIGURE_PETSC
 
+# check version of PetIBM
+AC_ARG_WITH([petibm],
+            AS_HELP_STRING([--with-petibm=VERSION],
+                           [set PetIBM version (0.2 or 0.3)]),
+            [PETIBM_VERSION=$withval],
+            [PETIBM_VERSION=0.3])
+if test "$PETIBM_VERSION" = "0.3"; then
+  CPPFLAGS_APPEND("-DPETIBM_0_3")
+elif test "$PETIBM_VERSION" = "0.2"; then
+  CPPFLAGS_APPEND("-DPETIBM_0_2")
+fi
+
 # list of Makefiles to generate
 AC_CONFIG_FILES([Makefile
                  include/Makefile

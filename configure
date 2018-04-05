@@ -779,6 +779,7 @@ with_sysroot
 enable_libtool_lock
 with_petsc_dir
 with_petsc_arch
+with_petibm
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1441,6 +1442,7 @@ Optional Packages:
                           compiler's sysroot if not specified).
   --with-petsc-dir=PATH   set PETSc directory
   --with-petsc-arch=PATH  set PETSc arch folder
+  --with-petibm=VERSION   set PetIBM version (0.2 or 0.3)
 
 Some influential environment variables:
   CC          C compiler command
@@ -18791,6 +18793,23 @@ CONTRIB_LIBS=$PACKAGE_save_CONTRIB_LIBS
 echo
 
 
+
+# check version of PetIBM
+
+# Check whether --with-petibm was given.
+if test "${with_petibm+set}" = set; then :
+  withval=$with_petibm; PETIBM_VERSION=$withval
+else
+  PETIBM_VERSION=0.3
+fi
+
+if test "$PETIBM_VERSION" = "0.3"; then
+  CPPFLAGS="$CPPFLAGS "-DPETIBM_0_3""
+
+elif test "$PETIBM_VERSION" = "0.2"; then
+  CPPFLAGS="$CPPFLAGS "-DPETIBM_0_2""
+
+fi
 
 # list of Makefiles to generate
 ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile applications/Makefile applications/convert/Makefile applications/interpolation/Makefile applications/vorticity/Makefile"

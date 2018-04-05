@@ -20,7 +20,18 @@
  *
  * \param directory Directory of the numerical solution (passed by pointer).
  */
-PetscErrorCode PetibmGetDirectory(std::string *directory);
+PetscErrorCode PetibmGetDirectory(
+	std::string *directory, const char key[], const PetscBool create=PETSC_FALSE);
+
+
+PetscErrorCode PetibmGetFilePath(std::string *filepath, const char key[]);
+
+
+/*! Loads options from configuration file.
+ *
+ * \param prefix Prefix of "-config_file".
+ */
+PetscErrorCode PetibmOptionsInsertFile(const char prefix[]);
 
 
 /*! Counts the number of points within provided boundaries.

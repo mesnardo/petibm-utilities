@@ -27,21 +27,13 @@ struct AppCtx
 PetscErrorCode AppGetOptions(const char prefix[], AppCtx *ctx)
 {
 	PetscErrorCode ierr;
-	char path[PETSC_MAX_PATH_LEN];
 	PetscBool found;
 
 	PetscFunctionBeginUser;
 
-	// get path of configuration file
-	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
-	                             path, sizeof(path), &found); CHKERRQ(ierr);
-	if (found)
-	{
-		ierr = PetscOptionsInsertFile(
-			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
-	}
-	ierr = PetscOptionsGetString(nullptr, prefix, "-source", ctx->source,
-	                             sizeof(ctx->source), &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetString(
+		nullptr, prefix, "-source", ctx->source,
+		sizeof(ctx->source), &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetString(
 		nullptr, prefix, "-destination", ctx->destination,
 		sizeof(ctx->destination), &found); CHKERRQ(ierr);
@@ -61,44 +53,27 @@ int main(int argc, char **argv)
 	PetibmFieldCtx fieldCtx;
 	AppCtx appCtx;
 	PetibmField field;
-	DMBoundaryType bType_x, bType_y, bType_z;
 
 	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
 
 	// parse command-line options
+	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &gridCtx); CHKERRQ(ierr);
 	ierr = PetibmFieldGetOptions(nullptr, &fieldCtx); CHKERRQ(ierr);
 	ierr = AppGetOptions(nullptr, &appCtx); CHKERRQ(ierr);
 
 	// create DMDA object
-	bType_x = (fieldCtx.periodic_x) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_y = (fieldCtx.periodic_y) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
-	bType_z = (fieldCtx.periodic_z) ? DM_BOUNDARY_PERIODIC : DM_BOUNDARY_GHOSTED;
 	if (dim == 2)
 	{
-		ierr = DMDACreate2d(PETSC_COMM_WORLD,
-		                    bType_x, bType_y,
-		                    DMDA_STENCIL_STAR,
-		                    gridCtx.nx, gridCtx.ny,
-		                    PETSC_DECIDE, PETSC_DECIDE,
-		                    1, 1, nullptr, nullptr,
-		                    &da); CHKERRQ(ierr);
+		ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);	
 	}
 	else if (dim == 3)
 	{
-		ierr = DMDACreate3d(PETSC_COMM_WORLD,
-		                    bType_x, bType_y, bType_z,
-		                    DMDA_STENCIL_STAR,
-		                    gridCtx.nx, gridCtx.ny, gridCtx.nz,
-		                    PETSC_DECIDE, PETSC_DECIDE, PETSC_DECIDE,
-		                    1, 1, nullptr, nullptr, nullptr,
-		                    &da); CHKERRQ(ierr);
+		ierr = PetibmFieldDMDACreate3d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
 	}
 	else
 		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
 		        "Support only provided for 2D or 3D DMDA objects");
-	ierr = DMSetFromOptions(da); CHKERRQ(ierr);
-	ierr = DMSetUp(da); CHKERRQ(ierr);
 
 	// initialize, read, and write
 	ierr = PetibmFieldInitialize(da, field); CHKERRQ(ierr);

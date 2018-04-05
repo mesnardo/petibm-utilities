@@ -2,6 +2,8 @@
  * \file misc.cpp
  */
 
+#include <sys/stat.h>
+
 #include "petibm-utilities/misc.h"
 
 
@@ -12,7 +14,8 @@
  *
  * \param directory Directory of the numerical solution (passed by pointer).
  */
-PetscErrorCode PetibmGetDirectory(std::string *directory)
+PetscErrorCode PetibmGetDirectory(
+	std::string *directory, const char key[], const PetscBool create)
 {
 	PetscErrorCode ierr;
 	char dir[PETSC_MAX_PATH_LEN];
@@ -21,11 +24,55 @@ PetscErrorCode PetibmGetDirectory(std::string *directory)
 	PetscFunctionBeginUser;
 
 	ierr = PetscOptionsGetString(
-		nullptr, nullptr, "-directory", dir, sizeof(dir), &found); CHKERRQ(ierr);
-	*directory = (!found) ? "." : dir;
+		nullptr, nullptr, key, dir, sizeof(dir), &found); CHKERRQ(ierr);
+	if (found)
+		*directory = dir;
+	if (create)
+		mkdir((*directory).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
 	PetscFunctionReturn(0);
 } // PetibmGetDirectory
+
+
+PetscErrorCode PetibmGetFilePath(std::string *filepath, const char key[])
+{
+	PetscErrorCode ierr;
+	char path[PETSC_MAX_PATH_LEN];
+	PetscBool found;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscOptionsGetString(
+		nullptr, nullptr, key, path, sizeof(path), &found); CHKERRQ(ierr);
+	if (found)
+		*filepath = path;
+
+	PetscFunctionReturn(0);
+} // PetibmGetDirectory
+
+
+/*! Loads options from configuration file.
+ *
+ * \param prefix Prefix of "-config_file".
+ */
+PetscErrorCode PetibmOptionsInsertFile(const char prefix[])
+{
+	PetscErrorCode ierr;
+	char path[PETSC_MAX_PATH_LEN];
+	PetscBool found;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetscOptionsGetString(nullptr, prefix, "-config_file",
+	                             path, sizeof(path), &found); CHKERRQ(ierr);
+	if (found)
+	{
+		ierr = PetscOptionsInsertFile(
+			PETSC_COMM_WORLD, nullptr, path, PETSC_FALSE); CHKERRQ(ierr);
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmOptionsInsertFile
 
 
 /*! Counts the number of points within provided boundaries.
