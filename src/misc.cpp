@@ -15,7 +15,8 @@
  * \param directory Directory of the numerical solution (passed by pointer).
  */
 PetscErrorCode PetibmGetDirectory(
-	std::string *directory, const char key[], const PetscBool create)
+	std::string *directory, const char key[],
+	const std::string defval, const PetscBool create)
 {
 	PetscErrorCode ierr;
 	char dir[PETSC_MAX_PATH_LEN];
@@ -25,8 +26,7 @@ PetscErrorCode PetibmGetDirectory(
 
 	ierr = PetscOptionsGetString(
 		nullptr, nullptr, key, dir, sizeof(dir), &found); CHKERRQ(ierr);
-	if (found)
-		*directory = dir;
+	*directory = (found)? dir : defval;
 	if (create)
 		mkdir((*directory).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
@@ -34,7 +34,8 @@ PetscErrorCode PetibmGetDirectory(
 } // PetibmGetDirectory
 
 
-PetscErrorCode PetibmGetFilePath(std::string *filepath, const char key[])
+PetscErrorCode PetibmGetFilePath(
+	std::string *filepath, const char key[], const std::string defval)
 {
 	PetscErrorCode ierr;
 	char path[PETSC_MAX_PATH_LEN];
@@ -44,8 +45,7 @@ PetscErrorCode PetibmGetFilePath(std::string *filepath, const char key[])
 
 	ierr = PetscOptionsGetString(
 		nullptr, nullptr, key, path, sizeof(path), &found); CHKERRQ(ierr);
-	if (found)
-		*filepath = path;
+	*filepath = (found)? path : defval;
 
 	PetscFunctionReturn(0);
 } // PetibmGetDirectory

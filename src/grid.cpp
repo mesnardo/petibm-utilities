@@ -408,36 +408,9 @@ PetscErrorCode PetibmGridHDF5Read(
 
 	ierr = PetscViewerHDF5Open(
 		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 	ierr = PetscViewerHDF5PushGroup(viewer, varname.c_str()); CHKERRQ(ierr);
-	// read x-stations
-	ierr = PetscObjectSetName((PetscObject) grid.x.coords, "x"); CHKERRQ(ierr);
-	ierr = VecLoad(grid.x.coords, viewer); CHKERRQ(ierr);
-	// read y-stations
-	ierr = PetscObjectSetName((PetscObject) grid.y.coords, "y"); CHKERRQ(ierr);
-	ierr = VecLoad(grid.y.coords, viewer); CHKERRQ(ierr);
-	if (grid.dim == 3)
-	{
-		// read z-stations
-		ierr = PetscObjectSetName((PetscObject) grid.z.coords, "z"); CHKERRQ(ierr);
-		ierr = VecLoad(grid.z.coords, viewer); CHKERRQ(ierr);
-	}
-
-	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmGridHDF5Read
-
-
-PetscErrorCode PetibmGridHDF5Read(
-	const std::string filepath, PetibmGrid &grid)
-{
-	PetscErrorCode ierr;
-	PetscViewer viewer;
-
-	PetscFunctionBeginUser;
-
-	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+#endif
 	// read x-stations
 	ierr = PetscObjectSetName((PetscObject) grid.x.coords, "x"); CHKERRQ(ierr);
 	ierr = VecLoad(grid.x.coords, viewer); CHKERRQ(ierr);
@@ -477,26 +450,9 @@ PetscErrorCode PetibmGridlineHDF5Read(
 
 	ierr = PetscViewerHDF5Open(
 		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 	ierr = PetscViewerHDF5PushGroup(viewer, varname.c_str()); CHKERRQ(ierr);
-	ierr = PetscObjectSetName(
-		(PetscObject) line, name.c_str()); CHKERRQ(ierr);
-	ierr = VecLoad(line, viewer); CHKERRQ(ierr);
-	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmGridlineHDF5Read
-
-
-PetscErrorCode PetibmGridlineHDF5Read(
-	const std::string filepath, const std::string name, Vec &line)
-{
-	PetscErrorCode ierr;
-	PetscViewer viewer;
-
-	PetscFunctionBeginUser;
-
-	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+#endif
 	ierr = PetscObjectSetName(
 		(PetscObject) line, name.c_str()); CHKERRQ(ierr);
 	ierr = VecLoad(line, viewer); CHKERRQ(ierr);
@@ -529,43 +485,9 @@ PetscErrorCode PetibmGridHDF5Write(
 
 	ierr = PetscViewerHDF5Open(
 		PETSC_COMM_SELF, filepath.c_str(), mode, &viewer); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 	ierr = PetscViewerHDF5PushGroup(viewer, varname.c_str()); CHKERRQ(ierr);
-	// write x-stations
-	ierr = PetscObjectSetName((PetscObject) grid.x.coords, "x"); CHKERRQ(ierr);
-	ierr = VecView(grid.x.coords, viewer); CHKERRQ(ierr);
-	// write y-stations
-	ierr = PetscObjectSetName((PetscObject) grid.y.coords, "y"); CHKERRQ(ierr);
-	ierr = VecView(grid.y.coords, viewer); CHKERRQ(ierr);
-	if (grid.dim == 3)
-	{
-		// write z-stations
-		ierr = PetscObjectSetName((PetscObject) grid.z.coords, "z"); CHKERRQ(ierr);
-		ierr = VecView(grid.z.coords, viewer); CHKERRQ(ierr);
-	}
-
-	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
-
-	PetscFunctionReturn(0);
-} // PetibmGridHDF5Write
-
-
-PetscErrorCode PetibmGridHDF5Write(
-	const std::string filepath, const PetibmGrid grid)
-{
-	PetscErrorCode ierr;
-	PetscViewer viewer;
-	PetscFileMode mode;
-
-	PetscFunctionBeginUser;
-
-	std::ifstream infile(filepath.c_str());
-	if (infile.good())
-		mode = FILE_MODE_APPEND;
-	else
-		mode = FILE_MODE_WRITE;
-
-	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), mode, &viewer); CHKERRQ(ierr);
+#endif
 	// write x-stations
 	ierr = PetscObjectSetName((PetscObject) grid.x.coords, "x"); CHKERRQ(ierr);
 	ierr = VecView(grid.x.coords, viewer); CHKERRQ(ierr);

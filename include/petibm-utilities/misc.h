@@ -21,10 +21,12 @@
  * \param directory Directory of the numerical solution (passed by pointer).
  */
 PetscErrorCode PetibmGetDirectory(
-	std::string *directory, const char key[], const PetscBool create=PETSC_FALSE);
+	std::string *directory, const char key[],
+	const std::string defval, const PetscBool create=PETSC_FALSE);
 
 
-PetscErrorCode PetibmGetFilePath(std::string *filepath, const char key[]);
+PetscErrorCode PetibmGetFilePath(
+	std::string *filepath, const char key[], const std::string defval);
 
 
 /*! Loads options from configuration file.

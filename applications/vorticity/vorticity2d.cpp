@@ -37,48 +37,46 @@ int main(int argc, char **argv)
 
 	// parse command-line options
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
-	directory = ".";
-	ierr = PetibmGetDirectory(&directory, "-directory"); CHKERRQ(ierr);
-	ierr = PetibmGetDirectory(&datadir, "-data_directory"); CHKERRQ(ierr);
-	ierr = PetibmGetDirectory(&outdir, "-output_directory", PETSC_TRUE); CHKERRQ(ierr);
+	ierr = PetibmGetDirectory(&directory, "-directory", "."); CHKERRQ(ierr);
+	ierr = PetibmGetDirectory(
+		&datadir, "-data_directory", directory); CHKERRQ(ierr);
+	ierr = PetibmGetDirectory(
+		&outdir, "-output_directory", "output", PETSC_TRUE); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &gridCtx); CHKERRQ(ierr);
 	ierr = PetibmFieldGetOptions(nullptr, &fieldCtx); CHKERRQ(ierr);
 	ierr = PetibmTimeStepGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
-	gridpath = directory+"/grid.h5";
-	ierr = PetibmGetFilePath(&gridpath, "-grid_path"); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	griddir = directory+"/grids";
-	ierr = PetibmGetDirectory(&griddir, "-grid_directory"); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	ierr = PetibmGetDirectory(
+		&griddir, "-grid_directory", directory+"/grids"); CHKERRQ(ierr);
+#else
+	ierr = PetibmGetFilePath(
+		&gridpath, "-grid_path", directory+"/grid.h5"); CHKERRQ(ierr);
 #endif
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-binary_format", &binary_format, &found); CHKERRQ(ierr);
 
 	// read cell-centered gridline stations
 	ierr = PetibmGridCreateSeq(gridCtx, grid); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
-	ierr = PetibmGridHDF5Read(gridpath, "p", grid); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridHDF5Read(griddir+"/cell-centered.h5", grid); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	gridpath = griddir+"/cell-centered.h5";
 #endif
+	ierr = PetibmGridHDF5Read(gridpath, "p", grid); CHKERRQ(ierr);
 	// read staggered gridline stations for x-velocity
 	griduxCtx.nx = (fieldCtx.periodic_x) ? gridCtx.nx : gridCtx.nx-1;
 	griduxCtx.ny = gridCtx.ny;
 	ierr = PetibmGridCreateSeq(griduxCtx, gridux); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
-	ierr = PetibmGridHDF5Read(gridpath, "u", gridux); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridHDF5Read(griddir+"/staggered-x.h5", gridux); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	gridpath = griddir+"/staggered-x.h5";
 #endif
+	ierr = PetibmGridHDF5Read(gridpath, "u", gridux); CHKERRQ(ierr);
 	// read staggered gridline stations for y-velocity
 	griduyCtx.nx = gridCtx.nx;
 	griduyCtx.ny = (fieldCtx.periodic_y) ? gridCtx.ny : gridCtx.ny-1;
 	ierr = PetibmGridCreateSeq(griduyCtx, griduy); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
-	ierr = PetibmGridHDF5Read(gridpath, "v", griduy); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridHDF5Read(griddir+"/staggered-y.h5", griduy); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	gridpath = griddir+"/staggered-y.h5";
 #endif
+	ierr = PetibmGridHDF5Read(gridpath, "v", griduy); CHKERRQ(ierr);
 	// create grid for z-vorticity
 	gridwzCtx.nx = gridCtx.nx - 1;
 	gridwzCtx.ny = gridCtx.ny - 1;
@@ -86,12 +84,12 @@ int main(int argc, char **argv)
 	ierr = PetibmVorticityZComputeGrid(gridux, griduy, gridwz); CHKERRQ(ierr);
 	if (rank == 0)
 	{
-#ifdef PETIBM_0_3
-		ierr = PetibmGridHDF5Write(outdir+"/grid.h5", "wz", gridwz); CHKERRQ(ierr);
-#elif PETIBM_0_2
+		std::string filepath = outdir+"/grid.h5";
+#ifdef PETIBM_0_2
+		filepath = outdir+"/grids/wz.h5";
 		mkdir((outdir+"/grids").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-		ierr = PetibmGridHDF5Write(outdir+"/grids/wz.h5", gridwz); CHKERRQ(ierr);
 #endif
+		ierr = PetibmGridHDF5Write(filepath, "wz", gridwz); CHKERRQ(ierr);
 	}
 	// create base DMDA object
 	ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
@@ -113,7 +111,7 @@ int main(int argc, char **argv)
 	{
 		ierr = PetscPrintf(
 			PETSC_COMM_WORLD, "[time-step %d]\n", ite); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
+#ifndef PETIBM_0_2
 		// get name of time-step file
 		std::stringstream ss;
 		ss << std::setfill('0') << std::setw(7) << ite << ".h5";
@@ -124,7 +122,7 @@ int main(int argc, char **argv)
 		ierr = PetibmVorticityZComputeField(
 			gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
 		ierr = PetibmFieldHDF5Write(outdir+"/"+filename, "wz", wz); CHKERRQ(ierr);
-#elif PETIBM_0_2
+#else
 		// get name of time-step directory
 		std::stringstream ss;
 		ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;

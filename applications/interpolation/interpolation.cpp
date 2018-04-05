@@ -30,17 +30,13 @@ int main(int argc, char **argv)
 	
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
 	ierr = PetibmGetDirectory(
-		&outdir, "-output_directory", PETSC_TRUE); CHKERRQ(ierr);
+		&outdir, "-output_directory", "output", PETSC_TRUE); CHKERRQ(ierr);
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridCtxPrintf("Grid A", gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridInitialize(gridACtx, gridA); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
 	ierr = PetibmGridHDF5Read(gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridHDF5Read(gridACtx.path, gridA); CHKERRQ(ierr);
-#endif
 	ierr = PetibmGridSetBoundaryPoints(
 		gridACtx.starts, gridACtx.ends, gridA); CHKERRQ(ierr);
 	// Create and read the field A
@@ -57,36 +53,20 @@ int main(int argc, char **argv)
 	ierr = PetibmGridCtxPrintf("Grid B", gridBCtx); CHKERRQ(ierr);
 	Vec coords[dim];
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nx, coords); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
 	ierr = PetibmGridlineHDF5Read(
 		gridBCtx.path, gridBCtx.name, "x", coords[0]); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridlineHDF5Read(gridBCtx.path, "x", coords[0]); CHKERRQ(ierr);
-#endif
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.ny, coords+1); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
 	ierr = PetibmGridlineHDF5Read(
 		gridBCtx.path, gridBCtx.name, "y", coords[1]); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridlineHDF5Read(gridBCtx.path, "y", coords[1]); CHKERRQ(ierr);
-#endif
 	if (dim == 3)
 	{
 		ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nz, coords+2); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
 		ierr = PetibmGridlineHDF5Read(
 			gridBCtx.path, gridBCtx.name, "z", coords[2]); CHKERRQ(ierr);
-#elif PETIBM_0_2
-		ierr = PetibmGridlineHDF5Read(gridBCtx.path, "z", coords[2]); CHKERRQ(ierr);
-#endif
 	}
 	ierr = PetibmGridInitialize(gridA, coords, gridB); CHKERRQ(ierr);
-#ifdef PETIBM_0_3
 	ierr = PetibmGridHDF5Read(
 		gridBCtx.path, gridBCtx.name, gridB); CHKERRQ(ierr);
-#elif PETIBM_0_2
-	ierr = PetibmGridHDF5Read(gridBCtx.path, gridB); CHKERRQ(ierr);
-#endif
 	ierr = PetibmGridSetBoundaryPoints(
 		gridBCtx.starts, gridBCtx.ends, gridB); CHKERRQ(ierr);
 	// Create the field B
