@@ -18812,7 +18812,7 @@ elif test "$PETIBM_VERSION" = "0.2"; then
 fi
 
 # list of Makefiles to generate
-ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile applications/Makefile applications/convert/Makefile applications/interpolation/Makefile applications/vorticity/Makefile"
+ac_config_files="$ac_config_files Makefile include/Makefile src/Makefile applications/Makefile applications/convert/Makefile applications/crop/Makefile applications/interpolation/Makefile applications/vorticity/Makefile"
 
 
 # output message
@@ -19946,6 +19946,7 @@ do
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;
     "applications/Makefile") CONFIG_FILES="$CONFIG_FILES applications/Makefile" ;;
     "applications/convert/Makefile") CONFIG_FILES="$CONFIG_FILES applications/convert/Makefile" ;;
+    "applications/crop/Makefile") CONFIG_FILES="$CONFIG_FILES applications/crop/Makefile" ;;
     "applications/interpolation/Makefile") CONFIG_FILES="$CONFIG_FILES applications/interpolation/Makefile" ;;
     "applications/vorticity/Makefile") CONFIG_FILES="$CONFIG_FILES applications/vorticity/Makefile" ;;
 
