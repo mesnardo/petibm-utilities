@@ -79,6 +79,26 @@ PetscErrorCode PetibmFieldSetBoundaryPoints(
 	const PetscReal value, PetibmField &field);
 
 
+PetscErrorCode PetibmFieldCrop2d(
+	const PetibmField fieldA,
+	const PetscInt I_start, const PetscInt I_end,
+	const PetscInt J_start, const PetscInt J_end,
+	PetibmField &fieldB);
+
+
+PetscErrorCode PetibmFieldCrop3d(
+	const PetibmField fieldA,
+	const PetscInt I_start, const PetscInt I_end,
+	const PetscInt J_start, const PetscInt J_end,
+	const PetscInt K_start, const PetscInt K_end,
+	PetibmField &fieldB);
+
+
+PetscErrorCode PetibmFieldCrop(
+	const PetibmGrid gridA, const PetibmField fieldA,
+	const PetibmGridCtx ctx, PetibmField &fieldB);
+
+
 /*! Inserts values from global vector into local vector.
  *
  * \param field The field to work on (passed by reference).

@@ -262,6 +262,114 @@ PetscErrorCode PetibmFieldSetBoundaryPoints(
 } // PetibmFieldSetBoundaryPoints
 
 
+PetscErrorCode PetibmFieldCrop2d(
+	const PetibmField fieldA,
+	const PetscInt I_start, const PetscInt I_end,
+	const PetscInt J_start, const PetscInt J_end,
+	PetibmField &fieldB)
+{
+	PetscErrorCode ierr;
+	PetscReal **arrA, **arrB;
+	DMDALocalInfo info;
+	PetscInt i, j, I, J;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAVecGetArray(fieldA.da, fieldA.global, &arrA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &arrB); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
+	J=J_start;
+	for (j=info.ys; j<info.ys+info.ym; j++)
+	{
+		I=I_start;
+		for (i=info.xs; i<info.xs+info.xm; i++)
+		{
+			arrB[j][i] = arrA[J][I];
+			I++;
+		}
+		J++;
+	}
+	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.global, &arrA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &arrB); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldCrop2d
+
+
+PetscErrorCode PetibmFieldCrop3d(
+	const PetibmField fieldA,
+	const PetscInt I_start, const PetscInt I_end,
+	const PetscInt J_start, const PetscInt J_end,
+	const PetscInt K_start, const PetscInt K_end,
+	PetibmField &fieldB)
+{
+	PetscErrorCode ierr;
+	PetscReal ***arrA, ***arrB;
+	DMDALocalInfo info;
+	PetscInt i, j, k, I, J, K;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAVecGetArray(fieldA.da, fieldA.global, &arrA); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(fieldB.da, fieldB.global, &arrB); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(fieldB.da, &info); CHKERRQ(ierr);
+	K=K_start;
+	for (k=info.zs; k<info.zs+info.zm; k++)
+	{
+		J=J_start;
+		for (j=info.ys; j<info.ys+info.ym; j++)
+		{
+			I=I_start;
+			for (i=info.xs; i<info.xs+info.xm; i++)
+			{
+				arrB[k][j][i] = arrA[K][J][I];
+				I++;
+			}
+			J++;
+		}
+		K++;
+	}
+	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.global, &arrA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &arrB); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmFieldCrop3d
+
+
+PetscErrorCode PetibmFieldCrop(
+	const PetibmGrid gridA, const PetibmField fieldA,
+	const PetibmGridCtx ctx, PetibmField &fieldB)
+{
+	PetscErrorCode ierr;
+	PetscInt I_start, I_end,
+	         J_start, J_end,
+	         K_start, K_end;
+
+	PetscFunctionBeginUser;
+
+	ierr = PetibmGridlineGetBoundingIndices(
+		gridA.x, ctx.starts[0], ctx.ends[0], I_start, I_end); CHKERRQ(ierr);
+	ierr = PetibmGridlineGetBoundingIndices(
+		gridA.y, ctx.starts[1], ctx.ends[1], J_start, J_end); CHKERRQ(ierr);
+	if (gridA.dim == 3)
+	{
+		ierr = PetibmGridlineGetBoundingIndices(
+			gridA.z, ctx.starts[2], ctx.ends[2], K_start, K_end); CHKERRQ(ierr);
+		ierr = PetibmFieldCrop3d(fieldA,
+		                         I_start, I_end, J_start, J_end, K_start, K_end,
+		                         fieldB); CHKERRQ(ierr);
+	}
+	else
+	{
+		ierr = PetibmFieldCrop2d(fieldA,
+		                         I_start, I_end, J_start, J_end,
+		                         fieldB); CHKERRQ(ierr);
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmFieldCrop
+
+
 /*! Inserts values from global vector into local vector.
  *
  * \param field The field to work on (passed by reference).

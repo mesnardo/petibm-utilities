@@ -311,6 +311,147 @@ PetscErrorCode PetibmGridlineSetBoundaryPoints(
 } // PetibmGridlineSetBoundaryPoints
 
 
+PetscErrorCode PetibmGridlineGetBoundingIndices(
+	const PetibmGridline line, const PetscReal x_start, const PetscReal x_end,
+	PetscInt &idx_start, PetscInt &idx_end)
+{
+	PetscErrorCode ierr;
+	PetscReal *arr;
+	DMDALocalInfo info;
+
+	PetscFunctionBeginUser;
+
+	ierr = DMDAGetLocalInfo(line.da, &info); CHKERRQ(ierr);
+	ierr = DMDAVecGetArray(line.da, line.coords, &arr); CHKERRQ(ierr);
+	PetscInt i = info.xs;
+	while (arr[i] < x_start and i < info.xs+info.xm)
+		i++;
+	idx_start = i;
+	while (arr[i] < x_end and i < info.xs+info.xm)
+		i++;
+	idx_end = i-1;
+	ierr = DMDAVecRestoreArray(line.da, line.coords, &arr); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmGridlineGetBoundingIndices
+
+
+PetscErrorCode PetibmGridlineCrop(
+	const PetibmGridline lineA, const PetscReal start, const PetscReal end,
+	PetibmGridline &lineB)
+{
+	PetscErrorCode ierr;
+	const PetscInt *lxA;
+	PetscInt *lxB;
+	PetscReal *lineA_arr, *lineB_arr;
+	PetscInt m;
+	PetscMPIInt rank;
+	DMDALocalInfo info;
+
+	PetscFunctionBeginUser;
+
+	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+
+	ierr = DMDAGetOwnershipRanges(
+		lineA.da, &lxA, nullptr, nullptr); CHKERRQ(ierr);
+	ierr = DMDAGetInfo(lineA.da,
+	                   nullptr,
+	                   nullptr, nullptr, nullptr,
+	                   &m, nullptr, nullptr,
+	                   nullptr, nullptr,
+	                   nullptr, nullptr, nullptr,
+	                   nullptr); CHKERRQ(ierr);
+	ierr = PetscMalloc(m*sizeof(*lxB), &lxB); CHKERRQ(ierr);
+	ierr = PetscMemcpy(lxB, lxA, m*sizeof(*lxB)); CHKERRQ(ierr);
+
+	// Count number of point on gridline between starting and ending points
+	ierr = DMDAVecGetArray(lineA.da, lineA.coords, &lineA_arr); CHKERRQ(ierr);
+	ierr = DMDAGetLocalInfo(lineA.da, &info); CHKERRQ(ierr);
+	PetscInt xm = info.xm;
+	for (PetscInt i=info.xs; i<info.xs+info.xm; i++)
+	{
+		if (!(lineA_arr[i] >= start and lineA_arr[i] <= end))
+		{
+			if (m == 1)
+				lxB[0]--;
+			else
+				lxB[rank]--;
+			xm--;
+		}
+	}
+	ierr = MPI_Allgather(
+		lxB+rank, 1, MPIU_INT, lxB, 1, MPIU_INT, PETSC_COMM_WORLD); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(lineA.da, lineA.coords, &lineA_arr); CHKERRQ(ierr);
+	// Create the DMDA object for the sub-gridline
+	if (m == 1)
+	{
+		ierr = DMDACreate1d(PETSC_COMM_SELF,
+	                      DM_BOUNDARY_GHOSTED, xm, 1, 1, lxB,
+	                      &lineB.da); CHKERRQ(ierr);
+	}
+	else
+	{
+		PetscInt M = 0;
+		ierr = MPI_Allreduce(
+			&xm, &M, 1, MPIU_INT, MPI_SUM, PETSC_COMM_WORLD); CHKERRQ(ierr);
+		ierr = DMDACreate1d(PETSC_COMM_WORLD,
+	                      DM_BOUNDARY_GHOSTED, M, 1, 1, lxB,
+	                      &lineB.da); CHKERRQ(ierr);	
+	}
+	ierr = PetscFree(lxB); CHKERRQ(ierr);
+	ierr = DMSetFromOptions(lineB.da); CHKERRQ(ierr);
+	ierr = DMSetUp(lineB.da); CHKERRQ(ierr);
+	ierr = DMCreateGlobalVector(lineB.da, &lineB.coords); CHKERRQ(ierr);
+	ierr = DMCreateLocalVector(lineB.da, &lineB.local); CHKERRQ(ierr);
+
+	// Fill coordinates of the sub-gridline
+	ierr = DMDAVecGetArray(lineA.da, lineA.coords, &lineA_arr); CHKERRQ(ierr);
+	ierr = VecGetArray(lineB.local, &lineB_arr); CHKERRQ(ierr);
+	PetscInt idx = 1;
+	for (PetscInt i=info.xs; i<info.xs+info.xm; i++)
+	{
+		if (lineA_arr[i] >= start and lineA_arr[i] <= end)
+		{
+			lineB_arr[idx] = lineA_arr[i];
+			idx++;
+		}
+	}
+	ierr = DMDAVecRestoreArray(lineA.da, lineA.coords, &lineA_arr); CHKERRQ(ierr);
+	ierr = VecRestoreArray(lineB.local, &lineB_arr); CHKERRQ(ierr);
+	ierr = DMLocalToGlobalBegin(
+		lineB.da, lineB.local, INSERT_VALUES, lineB.coords); CHKERRQ(ierr);
+	ierr = DMLocalToGlobalEnd(
+		lineB.da, lineB.local, INSERT_VALUES, lineB.coords); CHKERRQ(ierr);
+
+	PetscFunctionReturn(0);
+} // PetibmGridlineCrop
+
+
+PetscErrorCode PetibmGridCrop(
+	const PetibmGrid gridA, const PetibmGridCtx ctx, PetibmGrid &gridB)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	// Crop the gridline along the x-direction
+	ierr = PetibmGridlineCrop(
+		gridA.x, ctx.starts[0], ctx.ends[0], gridB.x); CHKERRQ(ierr);
+	// Crop the gridline along the y-direction
+	ierr = PetibmGridlineCrop(
+		gridA.y, ctx.starts[1], ctx.ends[1], gridB.y); CHKERRQ(ierr);
+	if (gridA.dim == 3)
+	{
+		gridB.dim = 3;
+		// Crop the gridline along the z-direction
+		ierr = PetibmGridlineCrop(
+			gridA.z, ctx.starts[2], ctx.ends[2], gridB.z); CHKERRQ(ierr);
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmGridCrop
+
+
 /*! Inserts global values into local vectors for the grid.
  *
  * \param grid The grid to work on (passed by reference).

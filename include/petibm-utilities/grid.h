@@ -127,6 +127,20 @@ PetscErrorCode PetibmGridlineSetBoundaryPoints(
 	const PetscReal start, const PetscReal end, PetibmGridline &line);
 
 
+PetscErrorCode PetibmGridlineGetBoundingIndices(
+	const PetibmGridline line, const PetscReal x_start, const PetscReal x_end,
+	PetscInt &idx_start, PetscInt &idx_end);
+
+
+PetscErrorCode PetibmGridlineCrop(
+	const PetibmGridline lineA, const PetscReal start, const PetscReal end,
+	PetibmGridline &lineB);
+
+
+PetscErrorCode PetibmGridCrop(
+	const PetibmGrid gridA, const PetibmGridCtx ctx, PetibmGrid &gridB);
+
+
 /*! Inserts global values into local vectors for the grid.
  *
  * \param grid The grid to work on (passed by reference).
