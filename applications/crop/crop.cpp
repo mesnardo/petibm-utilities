@@ -45,7 +45,13 @@ int main(int argc, char **argv)
 	// Crop grid A to get sub grid B and write grid B
 	std::strcpy(gridBCtx.name, gridACtx.name);
 	ierr = PetibmGridCrop(gridA, cropCtx, gridB); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 	filepath = outdir + "/grid.h5";
+#else
+	std::string griddir = outdir + "/grids";
+	mkdir(griddir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	filepath = griddir + "/" + gridBCtx.name + ".h5";
+#endif
 	ierr = PetibmGridHDF5Write(filepath, gridBCtx.name, gridB); CHKERRQ(ierr);
 
 	// Create field A
@@ -61,15 +67,28 @@ int main(int argc, char **argv)
 	{
 		ierr = PetscPrintf(
 			PETSC_COMM_WORLD, "[time-step %d] Cropping...\n", step); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 		// Read field A from file
 		std::stringstream ss;
 		ss << std::setfill('0') << std::setw(7) << step << ".h5";
 		filepath = datadir + "/" + ss.str();
+#else
+		// Read field A from file
+		std::stringstream ss;
+		ss << std::setfill('0') << std::setw(7) << step;
+		filepath = datadir + "/" + ss.str() + "/" + fieldACtx.name + ".h5";
+#endif
 		ierr = PetibmFieldHDF5Read(
 			filepath, fieldACtx.name, fieldA); CHKERRQ(ierr);
 		// Crop field A to fill field B
 		ierr = PetibmFieldCrop(gridA, fieldA, cropCtx, fieldB); CHKERRQ(ierr);
+#ifndef PETIBM_0_2
 		filepath = outdir + "/" + ss.str();
+#else
+		std::string folder = outdir + "/" + ss.str();
+		mkdir(folder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		filepath = folder + "/" + fieldBCtx.name + ".h5";
+#endif
 		ierr = PetibmFieldHDF5Write(filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 	}
 
