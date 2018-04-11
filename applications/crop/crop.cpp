@@ -89,6 +89,7 @@ int main(int argc, char **argv)
 		mkdir(folder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 		filepath = folder + "/" + fieldBCtx.name + ".h5";
 #endif
+		ierr = MPI_Barrier(PETSC_COMM_WORLD); CHKERRQ(ierr);
 		ierr = PetibmFieldHDF5Write(filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 	}
 
