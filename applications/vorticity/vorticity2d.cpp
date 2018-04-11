@@ -16,10 +16,31 @@
 #include "petibm-utilities/vorticity.h"
 
 
+static char help[] = "petibm-vorticity2d (0.1.0)\n\n" \
+"Computes 2D vorticity field.\n\n" \
+"Usage: petibm-vorticity2d [arg]\n" \
+"Options and arguments:\n" \
+"  -config_file <path>\tInsert options and arguments from a given file\n" \
+"  -data_directory <path>\tData directory [default='.']\n" \
+"  -output_directory <path>\tOutput directory [default='output']\n" \
+"  -grid_directory <path>\tDirectory with HDF5 grids (PetIBM-0.2) [default='grids']\n" \
+"  -grid_path <path>\tPath of the HDF5 grid file (PetIBM-0.3) [default='grid.h5']\n" \
+"  -binary_format\tRead the velocity written in PETSc binary format\n" \
+"  -nstart <int>\tStarting time-step\n" \
+"  -nend <int>\tEnding time-step\n" \
+"  -nstep <int>\tTime-step increment\n" \
+"  -nx <int>\tNumber of cells in the x-direction\n" \
+"  -ny <int>\tNumber of cells in the y-direction\n" \
+"  -periodic_x\tUse periodic conditions in the x-direction\n" \
+"  -periodic_y\tUse periodic conditions in the y-direction\n" \
+"\n"
+;
+
+
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
-	std::string directory, datadir, outdir, griddir, gridpath;
+	std::string datadir, outdir, griddir, gridpath;
 	PetibmGrid grid, gridux, griduy, gridwz;
 	PetibmGridCtx gridCtx, griduxCtx, griduyCtx, gridwzCtx;
 	PetibmField ux, uy, wz;
@@ -31,15 +52,14 @@ int main(int argc, char **argv)
 	PetscBool found = PETSC_FALSE,
 	          binary_format = PETSC_FALSE;
 
-	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
+	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 
 	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
 
 	// parse command-line options
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
-	ierr = PetibmGetDirectory(&directory, "-directory", "."); CHKERRQ(ierr);
 	ierr = PetibmGetDirectory(
-		&datadir, "-data_directory", directory); CHKERRQ(ierr);
+		&datadir, "-data_directory", "."); CHKERRQ(ierr);
 	ierr = PetibmGetDirectory(
 		&outdir, "-output_directory", "output", PETSC_TRUE); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &gridCtx); CHKERRQ(ierr);
@@ -47,10 +67,10 @@ int main(int argc, char **argv)
 	ierr = PetibmTimeStepGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
 #ifdef PETIBM_0_2
 	ierr = PetibmGetDirectory(
-		&griddir, "-grid_directory", directory+"/grids"); CHKERRQ(ierr);
+		&griddir, "-grid_directory", datadir+"/grids"); CHKERRQ(ierr);
 #else
 	ierr = PetibmGetFilePath(
-		&gridpath, "-grid_path", directory+"/grid.h5"); CHKERRQ(ierr);
+		&gridpath, "-grid_path", datadir+"/grid.h5"); CHKERRQ(ierr);
 #endif
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-binary_format", &binary_format, &found); CHKERRQ(ierr);
@@ -125,7 +145,7 @@ int main(int argc, char **argv)
 #else
 		// get name of time-step directory
 		std::stringstream ss;
-		ss << directory << "/" << std::setfill('0') << std::setw(7) << ite;
+		ss << datadir << "/" << std::setfill('0') << std::setw(7) << ite;
 		std::string folder(ss.str());
 		// define if binary format or HDF5
 		std::string extension = ".h5";
