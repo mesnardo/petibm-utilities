@@ -15,6 +15,32 @@
 #include "petibm-utilities/timestep.h"
 
 
+static char help[] = "petibm-crop (0.1.0)\n\n" \
+"Crop the numerical solution in a given sub-domain.\n\n" \
+"Usage: petibm-crop [arg]\n" \
+"Options and arguments:\n" \
+"  -config_file <path>\tInsert options and arguments from a given file\n" \
+"  -data_directory <path>\tData directory [default='solution']\n" \
+"  -output_directory <path>\tOutput directory [default='output']\n" \
+"  -gridA_name <string>\tName of the grid (PetIBM-0.3)\n" \
+"  -gridA_path <string>\tPath of the grid file\n" \
+"  -gridA_nx <int>\tNumber of cells in the x-direction\n" \
+"  -gridA_ny <int>\tNumber of cells in the y-direction\n" \
+"  -gridA_nz <int>\tNumber of cells in the z-direction\n" \
+"  -fieldA_name <string>\tName of the field\n" \
+"  -x_start <float>\tBottom-left corner x-coordinate of the sub-domain\n" \
+"  -y_start <float>\tBottom-left corner y-coordinate of the sub-domain\n" \
+"  -z_start <float>\tBottom-left corner z-coordinate of the sub-domain\n" \
+"  -x_end <float>\tTop-right corner x-coordinate of the sub-domain\n" \
+"  -y_end <float>\tTop-right corner y-coordinate of the sub-domain\n" \
+"  -z_end <float>\tTop-right corner z-coordinate of the sub-domain\n" \
+"  -nstart <int>\tStarting time-step\n" \
+"  -nend <int>\tEnding time-step\n" \
+"  -nstep <int>\tTime-step increment\n" \
+"\n"
+;
+
+
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
@@ -25,7 +51,7 @@ int main(int argc, char **argv)
 	PetibmTimeStepCtx stepCtx;
 	std::string outdir, datadir, filepath;
 
-	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
+	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 	
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
 	ierr = PetibmGetDirectory(
