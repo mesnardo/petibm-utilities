@@ -2,8 +2,6 @@
  * \file convert.cpp
  */
 
-#include <string>
-
 #include <petscsys.h>
 #include <petscdmda.h>
 
@@ -11,9 +9,24 @@
 #include "petibm-utilities/grid.h"
 #include "petibm-utilities/misc.h"
 
-#ifndef DIMENSIONS
-#define DIMENSIONS 2
-#endif
+
+static char help[] = "petibm-convert (0.1.0)\n\n" \
+"Convert a field solution from/to PETSc binary format to/from HDF5 format.\n\n" \
+"Usage: petibm-convert [arg]\n" \
+"Options and arguments:\n" \
+"  -config_file <path>\tInsert options and arguments from a given file\n" \
+"  -source <path>\tPath of the field to convert\n" \
+"  -destination <path>\tPath of the converted field to write\n" \
+"  -hdf52binary <bool>\tConvert from HDF5 to PETSc binary (otherwise binary -> HDF5)\n" \
+"  -name <string>\tName of the field\n" \
+"  -nx <int>\tNumber of points in the x-direction\n" \
+"  -ny <int>\tNumber of points in the y-direction\n" \
+"  -nz <int>\tNumber of points in the z-direction\n" \
+"  -periodic_x\tUse periodic boundary conditions in the x-direction\n" \
+"  -periodic_y\tUse periodic boundary conditions in the y-direction\n" \
+"  -periodic_z\tUse periodic boundary conditions in the z-direction\n" \
+"\n"
+;
 
 
 struct AppCtx
@@ -47,14 +60,13 @@ PetscErrorCode AppGetOptions(const char prefix[], AppCtx *ctx)
 int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
-	PetscInt dim = DIMENSIONS;
 	DM da;
 	PetibmGridCtx gridCtx;
 	PetibmFieldCtx fieldCtx;
 	AppCtx appCtx;
 	PetibmField field;
 
-	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
+	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 
 	// parse command-line options
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
@@ -63,17 +75,7 @@ int main(int argc, char **argv)
 	ierr = AppGetOptions(nullptr, &appCtx); CHKERRQ(ierr);
 
 	// create DMDA object
-	if (dim == 2)
-	{
-		ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);	
-	}
-	else if (dim == 3)
-	{
-		ierr = PetibmFieldDMDACreate3d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
-	}
-	else
-		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
-		        "Support only provided for 2D or 3D DMDA objects");
+	ierr = PetibmFieldDMDACreate(gridCtx, fieldCtx, da); CHKERRQ(ierr);
 
 	// initialize, read, and write
 	ierr = PetibmFieldInitialize(da, field); CHKERRQ(ierr);

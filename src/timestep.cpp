@@ -6,10 +6,10 @@
 #include "petibm-utilities/misc.h"
 
 
-/*! Gets options from command-line or config file.
+/*! Gets options from command-line or configuration file.
  *
- * \param prefix String to prepend the name of the options.
- * \param ctx The PetibmTimeStepCtx object to fill (passed by pointer).
+ * \param prefix [in] String to prepend the name of the options.
+ * \param ctx [out] The PetibmTimeStepCtx object to fill (passed by pointer).
  */
 PetscErrorCode PetibmTimeStepGetOptions(
 	const char prefix[], PetibmTimeStepCtx *ctx)

@@ -1,5 +1,5 @@
 SUBDIRS = \
 	convert \
 	crop \
-	interpolation \
+	interpolate \
 	vorticity

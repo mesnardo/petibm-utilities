@@ -7,9 +7,9 @@
 
 /*! Computes the gridlines for the vorticity in the z-direction.
  *
- * \param ux The grid for the x-velocity.
- * \param uy The grid for the y-velocity.
- * \param wz The grid for the z-vorticity (passed by reference).
+ * \param ux [in] The grid for the x-velocity.
+ * \param uy [in] The grid for the y-velocity.
+ * \param wz [out] The grid for the z-vorticity (passed by reference).
  */
 PetscErrorCode PetibmVorticityZComputeGrid(
 	const PetibmGrid ux, const PetibmGrid uy, PetibmGrid &wz)
@@ -57,15 +57,15 @@ PetscErrorCode PetibmVorticityZComputeGrid(
  *
  * First-order.
  *
- * \param gridux The grid for the velocity in the x-direction.
- * \param griduy The grid for the velocity in the y-direction.
- * \param ux The velocity field in the x-direction.
- * \param uy The velocity field in the y-direction.
- * \param wz The vorticity field in the z-direction (passed by reference).
+ * \param gridux [in] The grid for the velocity in the x-direction.
+ * \param griduy [in] The grid for the velocity in the y-direction.
+ * \param ux [in] The velocity field in the x-direction.
+ * \param uy [in] The velocity field in the y-direction.
+ * \param wz [out] The vorticity field in the z-direction (passed by reference).
  */
 PetscErrorCode PetibmVorticityZComputeField(
-	PetibmGrid gridux, PetibmGrid griduy, PetibmField ux, PetibmField uy,
-	PetibmField &wz)
+	const PetibmGrid gridux, const PetibmGrid griduy,
+	PetibmField ux, PetibmField uy, PetibmField &wz)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;
@@ -143,9 +143,9 @@ PetscErrorCode PetibmVorticityZComputeField(
 
 /*! Computes the gridlines for the vorticity in the x-direction.
  *
- * \param uy The grid for the y-velocity.
- * \param uz The grid for the z-velocity.
- * \param wx The grid for the x-vorticity (passed by reference).
+ * \param uy [in] The grid for the y-velocity.
+ * \param uz [in] The grid for the z-velocity.
+ * \param wx [out] The grid for the x-vorticity (passed by reference).
  */
 PetscErrorCode PetibmVorticityXComputeGrid(
 	const PetibmGrid uy, const PetibmGrid uz, PetibmGrid &wx)
@@ -194,15 +194,15 @@ PetscErrorCode PetibmVorticityXComputeGrid(
  *
  * First-order.
  *
- * \param griduy The grid for the velocity in the y-direction.
- * \param griduz The grid for the velocity in the z-direction.
- * \param uy The velocity field in the y-direction.
- * \param uz The velocity field in the z-direction.
- * \param wx The vorticity field in the x-direction (passed by reference).
+ * \param griduy [in] The grid for the velocity in the y-direction.
+ * \param griduz [in] The grid for the velocity in the z-direction.
+ * \param uy [in] The velocity field in the y-direction.
+ * \param uz [in] The velocity field in the z-direction.
+ * \param wx [out] The vorticity field in the x-direction (passed by reference).
  */
 PetscErrorCode PetibmVorticityXComputeField(
-	PetibmGrid griduy, PetibmGrid griduz, PetibmField uy, PetibmField uz,
-	PetibmField &wx)
+	const PetibmGrid griduy, const PetibmGrid griduz,
+	PetibmField uy, PetibmField uz, PetibmField &wx)
 {
 	PetscErrorCode ierr;
 	DMDALocalInfo info;

@@ -1,5 +1,5 @@
 /*! Interpolates a PetIBM field A from grid A to grid B.
- * \file interpolation.cpp
+ * \file interpolate.cpp
  */
 
 #include <string>
@@ -11,9 +11,40 @@
 #include "petibm-utilities/grid.h"
 #include "petibm-utilities/misc.h"
 
-#ifndef DIMENSIONS
-#define DIMENSIONS 2
-#endif
+
+static char help[] = "petibm-interpolate (0.1.0)\n\n" \
+"Interpolate the field solution from one grid to another.\n\n" \
+"Usage: petibm-interpolate [arg]\n" \
+"Options and arguments:\n" \
+"  -config_file <path>\tInsert options and arguments from a given file\n" \
+"  -output_directory <path>\tOutput directory [default='output']\n" \
+"  -gridA_name <string>\tName of the grid (PetIBM-0.3)\n" \
+"  -gridA_path <string>\tPath of the grid file\n" \
+"  -gridA_nx <int>\tNumber of cells in the x-direction\n" \
+"  -gridA_ny <int>\tNumber of cells in the y-direction\n" \
+"  -gridA_nz <int>\tNumber of cells in the z-direction\n" \
+"  -fieldA_name <string>\tName of the field to interpolate\n" \
+"  -fieldA_path <path>\tPath of the field to interpolate\n" \
+"  -fieldA_periodic_x\tUse periodic boundary conditions in the x-direction\n" \
+"  -fieldA_periodic_y\tUse periodic boundary conditions in the y-direction\n" \
+"  -fieldA_periodic_z\tUse periodic boundary conditions in the z-direction\n" \
+"  -fieldA_bc_value <float>\tValue of the field at boundaries\n" \
+"  -gridB_name <string>\tName of the grid (PetIBM-0.3)\n" \
+"  -gridB_path <string>\tPath of the grid file\n" \
+"  -gridB_nx <int>\tNumber of cells in the x-direction\n" \
+"  -gridB_ny <int>\tNumber of cells in the y-direction\n" \
+"  -gridB_nz <int>\tNumber of cells in the z-direction\n" \
+"  -gridB_x_start <float>\tBottom-left corner x-coordinate of the domain\n" \
+"  -gridB_y_start <float>\tBottom-left corner y-coordinate of the domain\n" \
+"  -gridB_z_start <float>\tBottom-left corner z-coordinate of the domain\n" \
+"  -gridB_x_end <float>\tTop-right corner x-coordinate of the domain\n" \
+"  -gridB_y_end <float>\tTop-right corner y-coordinate of the domain\n" \
+"  -gridB_z_end <float>\tTop-right corner z-coordinate of the domain\n" \
+"  -fieldB_name <string>\tName of the interpolated field\n" \
+"  -fieldB_path <path>\tPath of the output file for the interpolated field\n" \
+"  -fieldB_bc_value <float>\tValue of the field at boundaries\n" \
+"\n"
+;
 
 
 int main(int argc, char **argv)
@@ -23,10 +54,10 @@ int main(int argc, char **argv)
 	PetibmFieldCtx fieldACtx, fieldBCtx;
 	PetibmGrid gridA, gridB;
 	PetibmGridCtx gridACtx, gridBCtx;
-	const PetscInt dim = DIMENSIONS;
+	Vec coords[3];
 	std::string outdir;
 
-	ierr = PetscInitialize(&argc, &argv, nullptr, nullptr); CHKERRQ(ierr);
+	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 	
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
 	ierr = PetibmGetDirectory(
@@ -51,14 +82,13 @@ int main(int argc, char **argv)
 	// Create and read the grid B
 	ierr = PetibmGridGetOptions("gridB_", &gridBCtx); CHKERRQ(ierr);
 	ierr = PetibmGridCtxPrintf("Grid B", gridBCtx); CHKERRQ(ierr);
-	Vec coords[dim];
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nx, coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(
 		gridBCtx.path, gridBCtx.name, "x", coords[0]); CHKERRQ(ierr);
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.ny, coords+1); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(
 		gridBCtx.path, gridBCtx.name, "y", coords[1]); CHKERRQ(ierr);
-	if (dim == 3)
+	if (gridBCtx.nz > 0)
 	{
 		ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nz, coords+2); CHKERRQ(ierr);
 		ierr = PetibmGridlineHDF5Read(

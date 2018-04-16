@@ -72,7 +72,7 @@ AC_CONFIG_FILES([Makefile
                  applications/Makefile
                  applications/convert/Makefile
                  applications/crop/Makefile
-                 applications/interpolation/Makefile
+                 applications/interpolate/Makefile
                  applications/vorticity/Makefile])
 
 # output message
