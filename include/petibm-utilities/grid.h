@@ -200,39 +200,55 @@ PetscErrorCode PetibmGridlineDestroy(PetibmGridline &line);
  *
  * The gridlines should be stored in HDF5 format in the same file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param varname [in] Name of variable (group name in the HDF5).
  * \param grid [out] The PetibmGrid object to fill (passed by reference).
  */
 PetscErrorCode PetibmGridHDF5Read(
-	const std::string filepath, const std::string varname, PetibmGrid &grid);
+	const MPI_Comm comm, const std::string filepath, const std::string varname,
+	PetibmGrid &grid);
 
 
 /*! Reads the gridline stations from a file.
  *
  * The stations along the gridline should be stored in HDF5 format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] The path of the input file.
  * \param varname [in] The name of the variable.
  * \param name [in] The name of the gridline (the direction).
  * \param line [out] The sequential vector to fill (passed by reference).
  */
 PetscErrorCode PetibmGridlineHDF5Read(
-	const std::string filepath, const std::string varname,
+	const MPI_Comm comm, const std::string filepath, const std::string varname,
 	const std::string name, Vec &line);
 
+/*! Reads the gridline stations from a file.
+ *
+ * The stations along the gridline should be stored in HDF5 format.
+ *
+ * \param comm [in] MPI communicator.
+ * \param filepath [in] The path of the input file.
+ * \param varname [in] The name of the variable.
+ * \param name [in] The name of the gridline (the direction).
+ * \param line [out] The sequential vector to fill (passed by reference).
+ */
 PetscErrorCode PetibmGridlineHDF5Read(
-	const std::string filepath, const std::string name, Vec &line);
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	Vec &line);
 
 
 /*! Writes the gridlines into file in HDF5 format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the output file.
  * \param varname [in] Name of the grid.
  * \param grid [in] The PetibmGrid structure containing the gridlines.
  */
 PetscErrorCode PetibmGridHDF5Write(
-	const std::string filepath, const std::string varname, const PetibmGrid grid);
+	const MPI_Comm comm, const std::string filepath, const std::string varname,
+	const PetibmGrid grid);
 
 
 /*! Creates sequential vectors for the gridlines of a PetibmGrid.

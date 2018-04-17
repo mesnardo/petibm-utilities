@@ -63,10 +63,9 @@ int main(int argc, char **argv)
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
-	ierr = PetibmGridCtxPrintf("Grid A", gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridInitialize(gridACtx, gridA); CHKERRQ(ierr);
 	ierr = PetibmGridHDF5Read(
-		gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
+		PETSC_COMM_WORLD, gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
 
 	// Crop grid A to get sub grid B and write grid B
 	std::strcpy(gridBCtx.name, gridACtx.name);
@@ -75,14 +74,14 @@ int main(int argc, char **argv)
 	filepath = outdir + "/grid.h5";
 #else
 	std::string griddir = outdir + "/grids";
-	mkdir(griddir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	ierr = PetibmCreateDirectory(griddir); CHKERRQ(ierr);
 	filepath = griddir + "/" + gridBCtx.name + ".h5";
 #endif
-	ierr = PetibmGridHDF5Write(filepath, gridBCtx.name, gridB); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Write(
+		PETSC_COMM_WORLD, filepath, gridBCtx.name, gridB); CHKERRQ(ierr);
 
 	// Create field A
 	ierr = PetibmFieldGetOptions("fieldA_", &fieldACtx); CHKERRQ(ierr);
-	ierr = PetibmFieldCtxPrintf("Field A", fieldACtx); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldACtx, gridA, fieldA); CHKERRQ(ierr);
 
 	// Create field B
@@ -92,7 +91,7 @@ int main(int argc, char **argv)
 	for (PetscInt step=stepCtx.start; step<=stepCtx.end; step+=stepCtx.step)
 	{
 		ierr = PetscPrintf(
-			PETSC_COMM_WORLD, "[time-step %d] Cropping...\n", step); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, "[time-step %d]\n", step); CHKERRQ(ierr);
 #ifndef PETIBM_0_2
 		// Read field A from file
 		std::stringstream ss;
@@ -105,18 +104,18 @@ int main(int argc, char **argv)
 		filepath = datadir + "/" + ss.str() + "/" + fieldACtx.name + ".h5";
 #endif
 		ierr = PetibmFieldHDF5Read(
-			filepath, fieldACtx.name, fieldA); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, filepath, fieldACtx.name, fieldA); CHKERRQ(ierr);
 		// Crop field A to fill field B
 		ierr = PetibmFieldCrop(gridA, fieldA, cropCtx, fieldB); CHKERRQ(ierr);
 #ifndef PETIBM_0_2
 		filepath = outdir + "/" + ss.str();
 #else
 		std::string folder = outdir + "/" + ss.str();
-		mkdir(folder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		ierr = PetibmCreateDirectory(folder); CHKERRQ(ierr);
 		filepath = folder + "/" + fieldBCtx.name + ".h5";
 #endif
-		ierr = MPI_Barrier(PETSC_COMM_WORLD); CHKERRQ(ierr);
-		ierr = PetibmFieldHDF5Write(filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Write(
+			PETSC_COMM_WORLD, filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 	}
 
 	// Clean workspace

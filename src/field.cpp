@@ -443,12 +443,14 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field)
 
 /*! Reads the field values stored in given format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param viewerType [in] PETSc viewer type.
  * \param field [out] The PetibmField structure (passed by reference).
  */
-PetscErrorCode PetibmFieldRead(const std::string filepath,
+PetscErrorCode PetibmFieldRead(const MPI_Comm comm,
+                               const std::string filepath,
                                const std::string name,
                                const PetscViewerType viewerType,
                                PetibmField &field)
@@ -459,14 +461,14 @@ PetscErrorCode PetibmFieldRead(const std::string filepath,
 
 	if (std::strcmp(viewerType, PETSCVIEWERBINARY) == 0)
 	{
-		ierr = PetibmFieldBinaryRead(filepath, name, field); CHKERRQ(ierr);
+		ierr = PetibmFieldBinaryRead(comm, filepath, name, field); CHKERRQ(ierr);
 	}
 	else if (std::strcmp(viewerType, PETSCVIEWERHDF5) == 0)
 	{
-		ierr = PetibmFieldHDF5Read(filepath, name, field); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Read(comm, filepath, name, field); CHKERRQ(ierr);
 	}
 	else
-		SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_SUP,
+		SETERRQ(comm, PETSC_ERR_SUP,
 		        "Function only supports Binary and HDF5 viewers");
 
 	PetscFunctionReturn(0);
@@ -475,12 +477,14 @@ PetscErrorCode PetibmFieldRead(const std::string filepath,
 
 /*! Reads the field values stored in HDF5 format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param field [out] The PetibmField structure (passed by reference).
  */
 PetscErrorCode PetibmFieldHDF5Read(
-	const std::string filepath, const std::string name, PetibmField &field)
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -490,7 +494,7 @@ PetscErrorCode PetibmFieldHDF5Read(
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
 	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
+		comm, filepath.c_str(), FILE_MODE_READ, &viewer); CHKERRQ(ierr);
 	ierr = VecLoad(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -500,12 +504,14 @@ PetscErrorCode PetibmFieldHDF5Read(
 
 /*! Reads the field values stored in binary format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param field [out] The PetibmField structure (passed by reference).
  */
 PetscErrorCode PetibmFieldBinaryRead(
-	const std::string filepath, const std::string name, PetibmField &field)
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	PetibmField &field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -514,7 +520,7 @@ PetscErrorCode PetibmFieldBinaryRead(
 
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
-	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
+	ierr = PetscViewerCreate(comm, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERBINARY); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_READ); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
@@ -527,12 +533,14 @@ PetscErrorCode PetibmFieldBinaryRead(
 
 /*! Writes the field values into file in HDF5 format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the output file.
  * \param name [in] Name of the field.
  * \param field [in] PetibmField structure.
  */
 PetscErrorCode PetibmFieldHDF5Write(
-	const std::string filepath, const std::string name, const PetibmField field)
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	const PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -549,7 +557,7 @@ PetscErrorCode PetibmFieldHDF5Write(
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
 	ierr = PetscViewerHDF5Open(
-		PETSC_COMM_SELF, filepath.c_str(), mode, &viewer); CHKERRQ(ierr);
+		comm, filepath.c_str(), mode, &viewer); CHKERRQ(ierr);
 	ierr = VecView(field.global, viewer); CHKERRQ(ierr);
 	ierr = PetscViewerDestroy(&viewer); CHKERRQ(ierr);
 
@@ -559,12 +567,14 @@ PetscErrorCode PetibmFieldHDF5Write(
 
 /*! Writes the field values into file in binary format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the output file.
  * \param name [in] Name of the field.
  * \param field [in] PetibmField structure.
  */
 PetscErrorCode PetibmFieldBinaryWrite(
-	const std::string filepath, const std::string name, const PetibmField field)
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	const PetibmField field)
 {
 	PetscErrorCode ierr;
 	PetscViewer viewer;
@@ -573,7 +583,7 @@ PetscErrorCode PetibmFieldBinaryWrite(
 
 	ierr = PetscObjectSetName(
 		(PetscObject) field.global, name.c_str()); CHKERRQ(ierr);
-	ierr = PetscViewerCreate(PETSC_COMM_WORLD, &viewer); CHKERRQ(ierr); 
+	ierr = PetscViewerCreate(comm, &viewer); CHKERRQ(ierr); 
 	ierr = PetscViewerSetType(viewer, PETSCVIEWERBINARY); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetMode(viewer, FILE_MODE_WRITE); CHKERRQ(ierr);
 	ierr = PetscViewerFileSetName(viewer, filepath.c_str()); CHKERRQ(ierr);
@@ -833,11 +843,11 @@ PetscErrorCode PetibmFieldDMDACreate(
 
 	if (gridCtx.nz > 0)
 	{
-		ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
+		ierr = PetibmFieldDMDACreate3d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
 	}
 	else
 	{
-		ierr = PetibmFieldDMDACreate3d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
+		ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
 	}
 
 	PetscFunctionReturn(0);

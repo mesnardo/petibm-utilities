@@ -3,8 +3,12 @@
  */
 
 #include <sys/stat.h>
+#include <experimental/filesystem>
 
 #include "petibm-utilities/misc.h"
+
+
+namespace fs = std::experimental::filesystem;
 
 
 /*! Gets a directory from the command-line arguments.
@@ -28,7 +32,9 @@ PetscErrorCode PetibmGetDirectory(
 		nullptr, nullptr, key, dir, sizeof(dir), &found); CHKERRQ(ierr);
 	*directory = (found)? dir : defval;
 	if (create)
-		mkdir((*directory).c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+	{
+		ierr = PetibmCreateDirectory(*directory); CHKERRQ(ierr);
+	}
 
 	PetscFunctionReturn(0);
 } // PetibmGetDirectory
@@ -55,6 +61,43 @@ PetscErrorCode PetibmGetFilePath(
 
 	PetscFunctionReturn(0);
 } // PetibmGetDirectory
+
+
+/*! Creates a directory.
+ *
+ * \param directory [in] Path of the directory to create.
+ */
+PetscErrorCode PetibmCreateDirectory(const std::string directory)
+{
+	PetscErrorCode ierr;
+	PetscMPIInt rank;
+
+	PetscFunctionBeginUser;
+
+	ierr = MPI_Comm_rank(PETSC_COMM_WORLD, &rank); CHKERRQ(ierr);
+
+	if (rank == 0)
+	{
+		if (!fs::is_directory(directory.c_str()) or !fs::exists(directory.c_str()))
+		{
+			fs::create_directories(directory.c_str());
+		}
+	}
+
+	PetscFunctionReturn(0);
+} // PetibmCreateDirectory
+
+
+PetscErrorCode PetibmGetParentDirectory(
+	const std::string filepath, std::string &directory)
+{
+	PetscFunctionBeginUser;
+
+	fs::path p = filepath;
+	directory = p.parent_path();
+
+	PetscFunctionReturn(0);
+} // PetibmGetParentDirectory
 
 
 /*! Loads options from configuration file.

@@ -23,6 +23,12 @@ static char help[] = "petibm-interpolate (0.1.0)\n\n" \
 "  -gridA_nx <int>\tNumber of cells in the x-direction\n" \
 "  -gridA_ny <int>\tNumber of cells in the y-direction\n" \
 "  -gridA_nz <int>\tNumber of cells in the z-direction\n" \
+"  -gridA_x_start <float>\tBottom-left corner x-coordinate of the domain\n" \
+"  -gridA_y_start <float>\tBottom-left corner y-coordinate of the domain\n" \
+"  -gridA_z_start <float>\tBottom-left corner z-coordinate of the domain\n" \
+"  -gridA_x_end <float>\tTop-right corner x-coordinate of the domain\n" \
+"  -gridA_y_end <float>\tTop-right corner y-coordinate of the domain\n" \
+"  -gridA_z_end <float>\tTop-right corner z-coordinate of the domain\n" \
 "  -fieldA_name <string>\tName of the field to interpolate\n" \
 "  -fieldA_path <path>\tPath of the field to interpolate\n" \
 "  -fieldA_periodic_x\tUse periodic boundary conditions in the x-direction\n" \
@@ -67,7 +73,8 @@ int main(int argc, char **argv)
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridCtxPrintf("Grid A", gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridInitialize(gridACtx, gridA); CHKERRQ(ierr);
-	ierr = PetibmGridHDF5Read(gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(
+		PETSC_COMM_SELF, gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
 	ierr = PetibmGridSetBoundaryPoints(
 		gridACtx.starts, gridACtx.ends, gridA); CHKERRQ(ierr);
 	// Create and read the field A
@@ -75,7 +82,7 @@ int main(int argc, char **argv)
 	ierr = PetibmFieldCtxPrintf("Field A", fieldACtx); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldACtx, gridA, fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldHDF5Read(
-		fieldACtx.path, fieldACtx.name, fieldA); CHKERRQ(ierr);
+		PETSC_COMM_WORLD, fieldACtx.path, fieldACtx.name, fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldSetBoundaryPoints(
 		fieldACtx.bc_value, fieldA); CHKERRQ(ierr);
 
@@ -84,19 +91,19 @@ int main(int argc, char **argv)
 	ierr = PetibmGridCtxPrintf("Grid B", gridBCtx); CHKERRQ(ierr);
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nx, coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(
-		gridBCtx.path, gridBCtx.name, "x", coords[0]); CHKERRQ(ierr);
+		PETSC_COMM_SELF, gridBCtx.path, gridBCtx.name, "x", coords[0]); CHKERRQ(ierr);
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.ny, coords+1); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(
-		gridBCtx.path, gridBCtx.name, "y", coords[1]); CHKERRQ(ierr);
+		PETSC_COMM_SELF, gridBCtx.path, gridBCtx.name, "y", coords[1]); CHKERRQ(ierr);
 	if (gridBCtx.nz > 0)
 	{
 		ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nz, coords+2); CHKERRQ(ierr);
 		ierr = PetibmGridlineHDF5Read(
-			gridBCtx.path, gridBCtx.name, "z", coords[2]); CHKERRQ(ierr);
+			PETSC_COMM_SELF, gridBCtx.path, gridBCtx.name, "z", coords[2]); CHKERRQ(ierr);
 	}
 	ierr = PetibmGridInitialize(gridA, coords, gridB); CHKERRQ(ierr);
 	ierr = PetibmGridHDF5Read(
-		gridBCtx.path, gridBCtx.name, gridB); CHKERRQ(ierr);
+		PETSC_COMM_SELF, gridBCtx.path, gridBCtx.name, gridB); CHKERRQ(ierr);
 	ierr = PetibmGridSetBoundaryPoints(
 		gridBCtx.starts, gridBCtx.ends, gridB); CHKERRQ(ierr);
 	// Create the field B
@@ -109,8 +116,11 @@ int main(int argc, char **argv)
 	// Interpolate field A (defined on grid A) onto field B (defined on grid B)
 	ierr = PetibmFieldInterpolate(gridA, fieldA, gridB, fieldB); CHKERRQ(ierr);
 
+	std::string directory;
+	ierr = PetibmGetParentDirectory(fieldBCtx.path, directory); CHKERRQ(ierr);
+	ierr = PetibmCreateDirectory(directory); CHKERRQ(ierr);
 	ierr = PetibmFieldHDF5Write(
-		fieldBCtx.path, fieldBCtx.name, fieldB); CHKERRQ(ierr);
+		PETSC_COMM_WORLD, fieldBCtx.path, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 
 	ierr = PetibmFieldDestroy(fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);

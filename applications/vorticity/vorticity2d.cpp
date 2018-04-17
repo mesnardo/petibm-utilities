@@ -80,7 +80,8 @@ int main(int argc, char **argv)
 #ifdef PETIBM_0_2
 	gridpath = griddir+"/cell-centered.h5";
 #endif
-	ierr = PetibmGridHDF5Read(gridpath, "p", grid); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(
+		PETSC_COMM_SELF, gridpath, "p", grid); CHKERRQ(ierr);
 	// read staggered gridline stations for x-velocity
 	griduxCtx.nx = (fieldCtx.periodic_x) ? gridCtx.nx : gridCtx.nx-1;
 	griduxCtx.ny = gridCtx.ny;
@@ -88,7 +89,8 @@ int main(int argc, char **argv)
 #ifdef PETIBM_0_2
 	gridpath = griddir+"/staggered-x.h5";
 #endif
-	ierr = PetibmGridHDF5Read(gridpath, "u", gridux); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(
+		PETSC_COMM_SELF, gridpath, "u", gridux); CHKERRQ(ierr);
 	// read staggered gridline stations for y-velocity
 	griduyCtx.nx = gridCtx.nx;
 	griduyCtx.ny = (fieldCtx.periodic_y) ? gridCtx.ny : gridCtx.ny-1;
@@ -96,7 +98,8 @@ int main(int argc, char **argv)
 #ifdef PETIBM_0_2
 	gridpath = griddir+"/staggered-y.h5";
 #endif
-	ierr = PetibmGridHDF5Read(gridpath, "v", griduy); CHKERRQ(ierr);
+	ierr = PetibmGridHDF5Read(
+		PETSC_COMM_SELF, gridpath, "v", griduy); CHKERRQ(ierr);
 	// create grid for z-vorticity
 	gridwzCtx.nx = gridCtx.nx - 1;
 	gridwzCtx.ny = gridCtx.ny - 1;
@@ -107,9 +110,10 @@ int main(int argc, char **argv)
 		std::string filepath = outdir+"/grid.h5";
 #ifdef PETIBM_0_2
 		filepath = outdir+"/grids/wz.h5";
-		mkdir((outdir+"/grids").c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		ierr = PetibmCreateDirectory(outdir+"/grids"); CHKERRQ(ierr);
 #endif
-		ierr = PetibmGridHDF5Write(filepath, "wz", gridwz); CHKERRQ(ierr);
+		ierr = PetibmGridHDF5Write(
+			PETSC_COMM_SELF, filepath, "wz", gridwz); CHKERRQ(ierr);
 	}
 	// create base DMDA object
 	ierr = PetibmFieldDMDACreate2d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
@@ -137,11 +141,14 @@ int main(int argc, char **argv)
 		ss << std::setfill('0') << std::setw(7) << ite << ".h5";
 		std::string filename(ss.str());
 		// read velocity field
-		ierr = PetibmFieldHDF5Read(datadir+"/"+filename, "v", uy); CHKERRQ(ierr);
-		ierr = PetibmFieldHDF5Read(datadir+"/"+filename, "u", ux); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Read(
+			PETSC_COMM_WORLD, datadir+"/"+filename, "v", uy); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Read(
+			PETSC_COMM_WORLD, datadir+"/"+filename, "u", ux); CHKERRQ(ierr);
 		ierr = PetibmVorticityZComputeField(
 			gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
-		ierr = PetibmFieldHDF5Write(outdir+"/"+filename, "wz", wz); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Write(
+			PETSC_COMM_WORLD, outdir+"/"+filename, "wz", wz); CHKERRQ(ierr);
 #else
 		// get name of time-step directory
 		std::stringstream ss;
@@ -159,15 +166,16 @@ int main(int argc, char **argv)
 		std::stringstream ssout;
 		ssout << outdir << "/" << std::setfill('0') << std::setw(7) << ite;
 		std::string outfolder(ssout.str());
-		mkdir(outfolder.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+		ierr = PetibmCreateDirectory(outfolder); CHKERRQ(ierr);
 		// read velocity field
-		ierr = PetibmFieldRead(
-			folder+"/uy"+extension, "uy", viewerType, uy); CHKERRQ(ierr);
-		ierr = PetibmFieldRead(
-			folder+"/ux"+extension, "ux", viewerType, ux); CHKERRQ(ierr);
+		ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/uy"+extension,
+		                       "uy", viewerType, uy); CHKERRQ(ierr);
+		ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/ux"+extension,
+		                       "ux", viewerType, ux); CHKERRQ(ierr);
 		ierr = PetibmVorticityZComputeField(
 			gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
-		ierr = PetibmFieldHDF5Write(outfolder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
+		ierr = PetibmFieldHDF5Write(
+			PETSC_COMM_WORLD, outfolder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
 #endif
 	}
 

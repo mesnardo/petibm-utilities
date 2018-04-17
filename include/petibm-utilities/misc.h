@@ -35,6 +35,17 @@ PetscErrorCode PetibmGetFilePath(
 	std::string *filepath, const char key[], const std::string defval);
 
 
+/*! Creates a directory.
+ *
+ * \param directory [in] Path of the directory to create.
+ */
+PetscErrorCode PetibmCreateDirectory(const std::string directory);
+
+
+PetscErrorCode PetibmGetParentDirectory(
+	const std::string filepath, std::string &directory);
+
+
 /*! Loads options from configuration file.
  *
  * \param prefix [in] Prefix of "-config_file".

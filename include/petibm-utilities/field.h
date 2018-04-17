@@ -149,12 +149,14 @@ PetscErrorCode PetibmFieldDestroy(PetibmField &field);
 
 /*! Reads the field values stored in given format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param viewerType [in] PETSc viewer type.
  * \param field [out] The PetibmField structure (passed by reference).
  */
-PetscErrorCode PetibmFieldRead(const std::string filepath,
+PetscErrorCode PetibmFieldRead(const MPI_Comm comm,
+                               const std::string filepath,
                                const std::string name,
                                const PetscViewerType viewerType,
                                PetibmField &field);
@@ -162,42 +164,50 @@ PetscErrorCode PetibmFieldRead(const std::string filepath,
 
 /*! Reads the field values stored in HDF5 format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param field [out] The PetibmField structure (passed by reference).
  */
 PetscErrorCode PetibmFieldHDF5Read(
-	const std::string filepath, const std::string name, PetibmField &field);
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	PetibmField &field);
 
 
 /*! Reads the field values stored in binary format from file.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the input file.
  * \param name [in] The name of the field.
  * \param field [out] The PetibmField structure (passed by reference).
  */
 PetscErrorCode PetibmFieldBinaryRead(
-	const std::string filepath, const std::string name, PetibmField &field);
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	PetibmField &field);
 
 
 /*! Writes the field values into file in HDF5 format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the output file.
  * \param name [in] Name of the field.
  * \param field [in] PetibmField structure.
  */
 PetscErrorCode PetibmFieldHDF5Write(
-	const std::string filepath, const std::string name, const PetibmField field);
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	const PetibmField field);
 
 
 /*! Writes the field values into file in binary format.
  *
+ * \param comm [in] MPI communicator.
  * \param filepath [in] Path of the output file.
  * \param name [in] Name of the field.
  * \param field [in] PetibmField structure.
  */
 PetscErrorCode PetibmFieldBinaryWrite(
-	const std::string filepath, const std::string name, const PetibmField field);
+	const MPI_Comm comm, const std::string filepath, const std::string name,
+	const PetibmField field);
 
 
 /*! Interpolates field A associated with grid A onto grid B.

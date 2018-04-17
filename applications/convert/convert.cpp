@@ -79,19 +79,22 @@ int main(int argc, char **argv)
 
 	// initialize, read, and write
 	ierr = PetibmFieldInitialize(da, field); CHKERRQ(ierr);
+	std::string directory;
+	ierr = PetibmGetParentDirectory(appCtx.destination, directory); CHKERRQ(ierr);
+	ierr = PetibmCreateDirectory(directory); CHKERRQ(ierr);
 	if (appCtx.hdf52binary)
 	{
 		ierr = PetibmFieldHDF5Read(
-			appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
 		ierr = PetibmFieldBinaryWrite(
-			appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
 	}
 	else
 	{
 		ierr = PetibmFieldBinaryRead(
-			appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, appCtx.source, fieldCtx.name, field); CHKERRQ(ierr);
 		ierr = PetibmFieldHDF5Write(
-			appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
+			PETSC_COMM_WORLD, appCtx.destination, fieldCtx.name, field); CHKERRQ(ierr);
 	}
 
 	ierr = PetibmFieldDestroy(field); CHKERRQ(ierr);
