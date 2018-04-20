@@ -17,7 +17,6 @@ static char help[] = "petibm-interpolate (0.1.0)\n\n" \
 "Usage: petibm-interpolate [arg]\n" \
 "Options and arguments:\n" \
 "  -config_file <path>\tInsert options and arguments from a given file\n" \
-"  -output_directory <path>\tOutput directory [default='output']\n" \
 "  -gridA_name <string>\tName of the grid (PetIBM-0.3)\n" \
 "  -gridA_path <string>\tPath of the grid file\n" \
 "  -gridA_nx <int>\tNumber of cells in the x-direction\n" \
@@ -66,8 +65,6 @@ int main(int argc, char **argv)
 	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 	
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
-	ierr = PetibmGetDirectory(
-		&outdir, "-output_directory", "output", PETSC_TRUE); CHKERRQ(ierr);
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
