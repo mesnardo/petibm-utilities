@@ -17,7 +17,7 @@ static char help[] = "petibm-convert (0.1.0)\n\n" \
 "  -config_file <path>\tInsert options and arguments from a given file\n" \
 "  -source <path>\tPath of the field to convert\n" \
 "  -destination <path>\tPath of the converted field to write\n" \
-"  -hdf52binary <bool>\tConvert from HDF5 to PETSc binary (otherwise binary -> HDF5)\n" \
+"  -hdf52binary\tConvert from HDF5 to PETSc binary (otherwise binary -> HDF5)\n" \
 "  -name <string>\tName of the field\n" \
 "  -nx <int>\tNumber of points in the x-direction\n" \
 "  -ny <int>\tNumber of points in the y-direction\n" \
