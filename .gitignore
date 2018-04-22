@@ -4,3 +4,6 @@
 # Ignore build and install directories
 build
 install
+
+# Ignore Doxygen-generated documentation
+doc/html
