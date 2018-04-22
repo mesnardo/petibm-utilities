@@ -68,7 +68,6 @@ int main(int argc, char **argv)
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
-	ierr = PetibmGridCtxPrintf("Grid A", gridACtx); CHKERRQ(ierr);
 	ierr = PetibmGridInitialize(gridACtx, gridA); CHKERRQ(ierr);
 	ierr = PetibmGridHDF5Read(
 		PETSC_COMM_SELF, gridACtx.path, gridACtx.name, gridA); CHKERRQ(ierr);
@@ -76,7 +75,6 @@ int main(int argc, char **argv)
 		gridACtx.starts, gridACtx.ends, gridA); CHKERRQ(ierr);
 	// Create and read the field A
 	ierr = PetibmFieldGetOptions("fieldA_", &fieldACtx); CHKERRQ(ierr);
-	ierr = PetibmFieldCtxPrintf("Field A", fieldACtx); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldACtx, gridA, fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldHDF5Read(
 		PETSC_COMM_WORLD, fieldACtx.path, fieldACtx.name, fieldA); CHKERRQ(ierr);
@@ -85,7 +83,6 @@ int main(int argc, char **argv)
 
 	// Create and read the grid B
 	ierr = PetibmGridGetOptions("gridB_", &gridBCtx); CHKERRQ(ierr);
-	ierr = PetibmGridCtxPrintf("Grid B", gridBCtx); CHKERRQ(ierr);
 	ierr = VecCreateSeq(PETSC_COMM_SELF, gridBCtx.nx, coords); CHKERRQ(ierr);
 	ierr = PetibmGridlineHDF5Read(
 		PETSC_COMM_SELF, gridBCtx.path, gridBCtx.name, "x", coords[0]); CHKERRQ(ierr);
@@ -105,7 +102,6 @@ int main(int argc, char **argv)
 		gridBCtx.starts, gridBCtx.ends, gridB); CHKERRQ(ierr);
 	// Create the field B
 	ierr = PetibmFieldGetOptions("fieldB_", &fieldBCtx); CHKERRQ(ierr);
-	ierr = PetibmFieldCtxPrintf("Field B", fieldBCtx); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldBCtx, gridB, fieldB); CHKERRQ(ierr);
 	ierr = PetibmFieldSetBoundaryPoints(
 		fieldBCtx.bc_value, fieldB); CHKERRQ(ierr);
