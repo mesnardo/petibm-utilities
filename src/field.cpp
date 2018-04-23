@@ -757,7 +757,7 @@ PetscErrorCode PetibmFieldInterpolate3d(
 	ierr = DMDAVecRestoreArray(gridA.z.da, gridA.z.local, &zA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(gridB.x.da, gridB.x.local, &xB); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(gridB.y.da, gridB.y.local, &yB); CHKERRQ(ierr);
-	ierr = DMDAVecRestoreArray(gridB.z.da, gridB.z.local, &zA); CHKERRQ(ierr);
+	ierr = DMDAVecRestoreArray(gridB.z.da, gridB.z.local, &zB); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldA.da, fieldA.local, &vA); CHKERRQ(ierr);
 	ierr = DMDAVecRestoreArray(fieldB.da, fieldB.global, &vB); CHKERRQ(ierr);
 

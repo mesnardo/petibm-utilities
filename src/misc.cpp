@@ -182,7 +182,8 @@ PetscErrorCode PetibmGetNeighbors1D(
 	{
 		for (I=Istart; I<infoA.xs+infoA.xm; I++)
 		{
-			if (xA[I] <= xB[i] and xB[i] < xA[I+1])
+			if ((xA[I] <= xB[i] and xB[i] < xA[I+1])
+			    or abs(xB[i] - xA[I]) <= 1.0E-12)
 			{
 				Iv.push_back(I);
 				break;
