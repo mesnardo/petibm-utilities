@@ -263,6 +263,7 @@ int main(int argc, char **argv)
 #endif
 	}
 
+	ierr = PetibmGridDestroy(grid); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridux); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduy); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduz); CHKERRQ(ierr);

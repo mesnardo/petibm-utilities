@@ -119,6 +119,10 @@ int main(int argc, char **argv)
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridA); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridB); CHKERRQ(ierr);
+	for (PetscInt d=0; d<gridA.dim; d++)
+	{
+		ierr = VecDestroy(coords+d); CHKERRQ(ierr);
+	}
 	ierr = PetscFinalize(); CHKERRQ(ierr);
 
 	return 0;

@@ -530,7 +530,7 @@ PetscErrorCode PetibmGridDestroy(PetibmGrid &grid)
 	PetscFunctionBeginUser;
 
 	ierr = PetibmGridlineDestroy(grid.x); CHKERRQ(ierr);
-	ierr = PetibmGridlineDestroy(grid.x); CHKERRQ(ierr);
+	ierr = PetibmGridlineDestroy(grid.y); CHKERRQ(ierr);
 	if (grid.dim == 3)
 	{
 		ierr = PetibmGridlineDestroy(grid.z); CHKERRQ(ierr);
