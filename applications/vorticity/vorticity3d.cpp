@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 {
 	PetscErrorCode ierr;
 	std::string datadir, outdir, griddir, gridpath;
-	PetibmGrid grid, gridux, griduy, griduz, gridwx, gridwz;
+	PetibmGrid gridux, griduy, griduz, gridwx, gridwz;
 	PetibmGridCtx gridCtx, griduxCtx, griduyCtx, griduzCtx, gridwxCtx, gridwzCtx;
 	PetibmField ux, uy, uz, wx, wz;
 	PetibmFieldCtx fieldCtx;
@@ -86,13 +86,6 @@ int main(int argc, char **argv)
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-binary_format", &binary_format, &found); CHKERRQ(ierr);
 
-	// read cell-centered gridline stations
-	ierr = PetibmGridCreateSeq(gridCtx, grid); CHKERRQ(ierr);
-#ifdef PETIBM_0_2
-	gridpath = griddir+"/cell-centered.h5";
-#endif
-	ierr = PetibmGridHDF5Read(
-		PETSC_COMM_SELF, gridpath, "p", grid); CHKERRQ(ierr);
 	// read staggered gridline stations for x-velocity
 	griduxCtx.nx = (fieldCtx.periodic_x) ? gridCtx.nx : gridCtx.nx-1;
 	griduxCtx.ny = gridCtx.ny;
@@ -166,29 +159,25 @@ int main(int argc, char **argv)
 	// initialize field for ux velocity
 	ierr = PetibmFieldDMDACreate3d("ux", da, ux.da); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(ux.da, &ux.global); CHKERRQ(ierr);
-	ierr = DMCreateLocalVector(ux.da, &ux.local); CHKERRQ(ierr);
 	// initialize field for uy velocity
 	ierr = PetibmFieldDMDACreate3d("uy", da, uy.da); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(uy.da, &uy.global); CHKERRQ(ierr);
-	ierr = DMCreateLocalVector(uy.da, &uy.local); CHKERRQ(ierr);
 	// initialize field for uz velocity
 	ierr = PetibmFieldDMDACreate3d("uz", da, uz.da); CHKERRQ(ierr);
 	ierr = DMCreateGlobalVector(uz.da, &uz.global); CHKERRQ(ierr);
-	ierr = DMCreateLocalVector(uz.da, &uz.local); CHKERRQ(ierr);
 	// initialize field for wx vorticity
 	if (compute_wx)
 	{
 		ierr = PetibmFieldDMDACreate3d("wx", da, wx.da); CHKERRQ(ierr);
 		ierr = DMCreateGlobalVector(wx.da, &wx.global); CHKERRQ(ierr);
-		ierr = DMCreateLocalVector(wx.da, &wx.local); CHKERRQ(ierr);
 	}
 	// initialize field for wz vorticity
 	if (compute_wz)
 	{
 		ierr = PetibmFieldDMDACreate3d("wz", da, wz.da); CHKERRQ(ierr);
 		ierr = DMCreateGlobalVector(wz.da, &wz.global); CHKERRQ(ierr);
-		ierr = DMCreateLocalVector(wz.da, &wz.local); CHKERRQ(ierr);
 	}
+	ierr = DMDestroy(&da); CHKERRQ(ierr);
 
 	// loop over the time steps to compute the z-vorticity
 	for (ite=stepCtx.start; ite<=stepCtx.end; ite+=stepCtx.step)
@@ -263,24 +252,16 @@ int main(int argc, char **argv)
 #endif
 	}
 
-	ierr = PetibmGridDestroy(grid); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridux); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduy); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduz); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridwx); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(gridwz); CHKERRQ(ierr);
-	ierr = DMDestroy(&da); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(ux); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uy); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uz); CHKERRQ(ierr);
-	if (compute_wx)
-	{
-		ierr = PetibmFieldDestroy(wx); CHKERRQ(ierr);
-	}
-	if (compute_wz)
-	{
-		ierr = PetibmFieldDestroy(wz); CHKERRQ(ierr);
-	}
+	ierr = PetibmFieldDestroy(wx); CHKERRQ(ierr);
+	ierr = PetibmFieldDestroy(wz); CHKERRQ(ierr);
 	
 	ierr = PetscFinalize(); CHKERRQ(ierr);
 
