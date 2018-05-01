@@ -48,6 +48,8 @@ static char help[] = "petibm-interpolate (0.1.0)\n\n" \
 "  -fieldB_name <string>\tName of the interpolated field\n" \
 "  -fieldB_path <path>\tPath of the output file for the interpolated field\n" \
 "  -fieldB_bc_value <float>\tValue of the field at boundaries\n" \
+"  -input_binary\tRead the PetIBM field written in PETSc binary format (PetIBM-0.2)\n" \
+"  -output_binary\tWrite the PetIBM field in PETSc binary format (PetIBM-0.2)\n" \
 "\n"
 ;
 
@@ -65,6 +67,22 @@ int main(int argc, char **argv)
 	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 	
 	ierr = PetibmOptionsInsertFile(nullptr); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	// get the input and output formats
+	PetscBool input_binary = PETSC_FALSE,
+	          output_binary = PETSC_FALSE,
+	          found = PETSC_FALSE;
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-input_binary", &input_binary, &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-output_binary", &output_binary, &found); CHKERRQ(ierr);
+	PetscViewerType inViewerType = PETSCVIEWERHDF5,
+	                outViewerType = PETSCVIEWERHDF5;
+	if (input_binary == PETSC_TRUE)
+		inViewerType = PETSCVIEWERBINARY;
+	if (output_binary == PETSC_TRUE)
+		outViewerType = PETSCVIEWERBINARY;
+#endif
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
@@ -76,8 +94,13 @@ int main(int argc, char **argv)
 	// Create and read the field A
 	ierr = PetibmFieldGetOptions("fieldA_", &fieldACtx); CHKERRQ(ierr);
 	ierr = PetibmFieldInitialize(fieldACtx, gridA, fieldA); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	ierr = PetibmFieldRead(PETSC_COMM_WORLD, fieldACtx.path, fieldACtx.name,
+	                       inViewerType, fieldA); CHKERRQ(ierr);
+#else
 	ierr = PetibmFieldHDF5Read(
 		PETSC_COMM_WORLD, fieldACtx.path, fieldACtx.name, fieldA); CHKERRQ(ierr);
+#endif
 	ierr = PetibmFieldSetBoundaryPoints(
 		fieldACtx.bc_value, fieldA); CHKERRQ(ierr);
 
@@ -112,8 +135,13 @@ int main(int argc, char **argv)
 	std::string directory;
 	ierr = PetibmGetParentDirectory(fieldBCtx.path, directory); CHKERRQ(ierr);
 	ierr = PetibmCreateDirectory(directory); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	ierr = PetibmFieldWrite(PETSC_COMM_WORLD, fieldBCtx.path, fieldBCtx.name,
+	                        outViewerType, fieldB); CHKERRQ(ierr);
+#else
 	ierr = PetibmFieldHDF5Write(
 		PETSC_COMM_WORLD, fieldBCtx.path, fieldBCtx.name, fieldB); CHKERRQ(ierr);
+#endif
 
 	ierr = PetibmFieldDestroy(fieldA); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(fieldB); CHKERRQ(ierr);

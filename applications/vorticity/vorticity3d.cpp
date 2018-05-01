@@ -28,7 +28,8 @@ static char help[] = "petibm-vorticity3d (0.1.0)\n\n" \
 "  -grid_path <path>\tPath of the HDF5 grid file (PetIBM-0.3) [default='grid.h5']\n" \
 "  -compute_wx\tCompute the x-component of the vorticity\n" \
 "  -compute_wz\tCompute the z-component of the vorticity\n" \
-"  -binary_format\tRead the velocity written in PETSc binary format\n" \
+"  -input_binary\tRead the velocity written in PETSc binary format (PetIBM-0.2)\n" \
+"  -output_binary\tWrite the vorticity in PETSc binary format (PetIBM-0.2)\n" \
 "  -nstart <int>\tStarting time-step\n" \
 "  -nend <int>\tEnding time-step\n" \
 "  -nstep <int>\tTime-step increment\n" \
@@ -56,8 +57,7 @@ int main(int argc, char **argv)
 	PetscMPIInt rank;
 	PetscBool found = PETSC_FALSE,
 	          compute_wx = PETSC_FALSE,
-	          compute_wz = PETSC_FALSE,
-	          binary_format = PETSC_FALSE;
+	          compute_wz = PETSC_FALSE;
 
 	ierr = PetscInitialize(&argc, &argv, nullptr, help); CHKERRQ(ierr);
 
@@ -83,8 +83,27 @@ int main(int argc, char **argv)
 		nullptr, nullptr, "-compute_wx", &compute_wx, &found); CHKERRQ(ierr);
 	ierr = PetscOptionsGetBool(
 		nullptr, nullptr, "-compute_wz", &compute_wz, &found); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	// get the input and output formats
+	PetscBool input_binary = PETSC_FALSE,
+	          output_binary = PETSC_FALSE;
 	ierr = PetscOptionsGetBool(
-		nullptr, nullptr, "-binary_format", &binary_format, &found); CHKERRQ(ierr);
+		nullptr, nullptr, "-input_binary", &input_binary, &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-output_binary", &output_binary, &found); CHKERRQ(ierr);
+	std::string inExt = ".h5",
+	            outExt = ".h5";
+	PetscViewerType inViewerType = PETSCVIEWERHDF5,
+	                outViewerType = PETSCVIEWERHDF5;
+	if (input_binary == PETSC_TRUE)
+	{
+		inExt = ".dat"; inViewerType = PETSCVIEWERBINARY;
+	}
+	if (output_binary == PETSC_TRUE)
+	{
+		outExt = ".dat"; outViewerType = PETSCVIEWERBINARY;
+	}
+#endif
 
 	// read staggered gridline stations for x-velocity
 	griduxCtx.nx = (fieldCtx.periodic_x) ? gridCtx.nx : gridCtx.nx-1;
@@ -215,39 +234,31 @@ int main(int argc, char **argv)
 		std::stringstream ss;
 		ss << datadir << "/" << std::setfill('0') << std::setw(7) << ite;
 		std::string folder(ss.str());
-		// define if binary format or HDF5
-		std::string extension = ".h5";
-		PetscViewerType viewerType = PETSCVIEWERHDF5;
-		if (binary_format == PETSC_TRUE)
-		{
-			extension = ".dat";
-			viewerType = PETSCVIEWERBINARY;
-		}
 		// get time-step directory to save
 		std::stringstream ssout;
 		ssout << outdir << "/" << std::setfill('0') << std::setw(7) << ite;
 		std::string outfolder(ssout.str());
 		ierr = PetibmCreateDirectory(outfolder); CHKERRQ(ierr);
 		// read velocity field
-		ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/uy"+extension,
-		                       "uy", viewerType, uy); CHKERRQ(ierr);
+		ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/uy"+inExt,
+		                       "uy", inViewerType, uy); CHKERRQ(ierr);
 		if (compute_wx)
 		{
-			ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/uz"+extension,
-			                       "uz", viewerType, uz); CHKERRQ(ierr);
+			ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/uz"+inExt,
+			                       "uz", inViewerType, uz); CHKERRQ(ierr);
 			ierr = PetibmVorticityXComputeField(
 				griduy, griduz, uy, uz, wx); CHKERRQ(ierr);
-			ierr = PetibmFieldHDF5Write(
-				PETSC_COMM_WORLD, outfolder+"/wx.h5", "wx", wx); CHKERRQ(ierr);
+			ierr = PetibmFieldWrite(PETSC_COMM_WORLD, outfolder+"/wx"+outExt,
+			                        "wx", outViewerType, wx); CHKERRQ(ierr);
 		}
 		if (compute_wz)
 		{
-			ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/ux"+extension,
-			                       "ux", viewerType, ux); CHKERRQ(ierr);
+			ierr = PetibmFieldRead(PETSC_COMM_WORLD, folder+"/ux"+inExt,
+			                       "ux", inViewerType, ux); CHKERRQ(ierr);
 			ierr = PetibmVorticityZComputeField(
 				gridux, griduy, ux, uy, wz); CHKERRQ(ierr);
-			ierr = PetibmFieldHDF5Write(
-				PETSC_COMM_WORLD, outfolder+"/wz.h5", "wz", wz); CHKERRQ(ierr);
+			ierr = PetibmFieldWrite(PETSC_COMM_WORLD, outfolder+"/wz"+outExt,
+			                        "wz", outViewerType, wz); CHKERRQ(ierr);
 		}
 #endif
 	}

@@ -531,6 +531,40 @@ PetscErrorCode PetibmFieldBinaryRead(
 } // PetibmFieldBinaryRead
 
 
+/*! Writes the field values to file in given format.
+ *
+ * \param comm [in] MPI communicator.
+ * \param filepath [in] Path of the output file.
+ * \param name [in] The name of the field.
+ * \param viewerType [in] PETSc viewer type.
+ * \param field [in] The PetibmField structure.
+ */
+PetscErrorCode PetibmFieldWrite(const MPI_Comm comm,
+                                const std::string filepath,
+                                const std::string name,
+                                const PetscViewerType viewerType,
+                                const PetibmField field)
+{
+	PetscErrorCode ierr;
+
+	PetscFunctionBeginUser;
+
+	if (std::strcmp(viewerType, PETSCVIEWERBINARY) == 0)
+	{
+		ierr = PetibmFieldBinaryWrite(comm, filepath, name, field); CHKERRQ(ierr);
+	}
+	else if (std::strcmp(viewerType, PETSCVIEWERHDF5) == 0)
+	{
+		ierr = PetibmFieldHDF5Write(comm, filepath, name, field); CHKERRQ(ierr);
+	}
+	else
+		SETERRQ(comm, PETSC_ERR_SUP,
+		        "Function only supports Binary and HDF5 viewers");
+
+	PetscFunctionReturn(0);
+} // PetibmFieldWrite
+
+
 /*! Writes the field values into file in HDF5 format.
  *
  * \param comm [in] MPI communicator.

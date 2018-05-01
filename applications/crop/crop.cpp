@@ -28,6 +28,8 @@ static char help[] = "petibm-crop (0.1.0)\n\n" \
 "  -gridA_ny <int>\tNumber of cells in the y-direction\n" \
 "  -gridA_nz <int>\tNumber of cells in the z-direction\n" \
 "  -fieldA_name <string>\tName of the field\n" \
+"  -input_binary\tRead the PetIBM field written in PETSc binary format (PetIBM-0.2)\n" \
+"  -output_binary\tWrite the PetIBM field in PETSc binary format (PetIBM-0.2)\n" \
 "  -x_start <float>\tBottom-left corner x-coordinate of the sub-domain\n" \
 "  -y_start <float>\tBottom-left corner y-coordinate of the sub-domain\n" \
 "  -z_start <float>\tBottom-left corner z-coordinate of the sub-domain\n" \
@@ -60,6 +62,28 @@ int main(int argc, char **argv)
 		&outdir, "-output_directory", "output", PETSC_TRUE); CHKERRQ(ierr);
 	ierr = PetibmTimeStepGetOptions(nullptr, &stepCtx); CHKERRQ(ierr);
 	ierr = PetibmGridGetOptions(nullptr, &cropCtx); CHKERRQ(ierr);
+#ifdef PETIBM_0_2
+	// get the input and output formats
+	PetscBool input_binary = PETSC_FALSE,
+	          output_binary = PETSC_FALSE,
+	          found = PETSC_FALSE;
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-input_binary", &input_binary, &found); CHKERRQ(ierr);
+	ierr = PetscOptionsGetBool(
+		nullptr, nullptr, "-output_binary", &output_binary, &found); CHKERRQ(ierr);
+	std::string inExt = ".h5",
+	            outExt = ".h5";
+	PetscViewerType inViewerType = PETSCVIEWERHDF5,
+	                outViewerType = PETSCVIEWERHDF5;
+	if (input_binary == PETSC_TRUE)
+	{
+		inExt = ".dat"; inViewerType = PETSCVIEWERBINARY;
+	}
+	if (output_binary == PETSC_TRUE)
+	{
+		outExt = ".dat"; outViewerType = PETSCVIEWERBINARY;
+	}
+#endif
 
 	// Create and read the grid A
 	ierr = PetibmGridGetOptions("gridA_", &gridACtx); CHKERRQ(ierr);
@@ -97,25 +121,29 @@ int main(int argc, char **argv)
 		std::stringstream ss;
 		ss << std::setfill('0') << std::setw(7) << step << ".h5";
 		filepath = datadir + "/" + ss.str();
+		ierr = PetibmFieldHDF5Read(
+			PETSC_COMM_WORLD, filepath, fieldACtx.name, fieldA); CHKERRQ(ierr);
 #else
 		// Read field A from file
 		std::stringstream ss;
 		ss << std::setfill('0') << std::setw(7) << step;
-		filepath = datadir + "/" + ss.str() + "/" + fieldACtx.name + ".h5";
+		filepath = datadir + "/" + ss.str() + "/" + fieldACtx.name + inExt;
+		ierr = PetibmFieldRead(PETSC_COMM_WORLD, filepath, fieldACtx.name,
+		                       inViewerType, fieldA); CHKERRQ(ierr);
 #endif
-		ierr = PetibmFieldHDF5Read(
-			PETSC_COMM_WORLD, filepath, fieldACtx.name, fieldA); CHKERRQ(ierr);
 		// Crop field A to fill field B
 		ierr = PetibmFieldCrop(gridA, fieldA, cropCtx, fieldB); CHKERRQ(ierr);
 #ifndef PETIBM_0_2
 		filepath = outdir + "/" + ss.str();
+		ierr = PetibmFieldHDF5Write(
+			PETSC_COMM_WORLD, filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 #else
 		std::string folder = outdir + "/" + ss.str();
 		ierr = PetibmCreateDirectory(folder); CHKERRQ(ierr);
-		filepath = folder + "/" + fieldBCtx.name + ".h5";
+		filepath = folder + "/" + fieldBCtx.name + outExt;
+		ierr = PetibmFieldWrite(PETSC_COMM_WORLD, filepath, fieldBCtx.name,
+		                        outViewerType, fieldB); CHKERRQ(ierr);
 #endif
-		ierr = PetibmFieldHDF5Write(
-			PETSC_COMM_WORLD, filepath, fieldBCtx.name, fieldB); CHKERRQ(ierr);
 	}
 
 	// Clean workspace
