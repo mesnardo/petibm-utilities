@@ -85,11 +85,11 @@ PetscErrorCode PetibmVorticityZComputeField(
 		ierr = DMGetLocalVector(ux.da, &ux_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalBegin(
 			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
+		ierr = DMGlobalToLocalEnd(
+			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
 		ierr = DMGetLocalVector(uy.da, &uy_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalBegin(
 			uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
-		ierr = DMGlobalToLocalEnd(
-			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalEnd(
 			uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(ux.da, ux_local, &ux_a); CHKERRQ(ierr);
@@ -122,11 +122,11 @@ PetscErrorCode PetibmVorticityZComputeField(
 		ierr = DMGetLocalVector(ux.da, &ux_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalBegin(
 			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
+		ierr = DMGlobalToLocalEnd(
+			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
 		ierr = DMGetLocalVector(uy.da, &uy_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalBegin(
 			uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
-		ierr = DMGlobalToLocalEnd(
-			ux.da, ux.global, INSERT_VALUES, ux_local); CHKERRQ(ierr);
 		ierr = DMGlobalToLocalEnd(
 			uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
 		ierr = DMDAVecGetArray(ux.da, ux_local, &ux_a); CHKERRQ(ierr);
@@ -245,11 +245,11 @@ PetscErrorCode PetibmVorticityXComputeField(
 	ierr = DMGetLocalVector(uy.da, &uy_local); CHKERRQ(ierr);
 	ierr = DMGlobalToLocalBegin(
 		uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
+	ierr = DMGlobalToLocalEnd(
+		uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
 	ierr = DMGetLocalVector(uz.da, &uz_local); CHKERRQ(ierr);
 	ierr = DMGlobalToLocalBegin(
 		uz.da, uz.global, INSERT_VALUES, uz_local); CHKERRQ(ierr);
-	ierr = DMGlobalToLocalEnd(
-		uy.da, uy.global, INSERT_VALUES, uy_local); CHKERRQ(ierr);
 	ierr = DMGlobalToLocalEnd(
 		uz.da, uz.global, INSERT_VALUES, uz_local); CHKERRQ(ierr);
 	ierr = DMDAVecGetArray(uy.da, uy_local, &uy_a); CHKERRQ(ierr);
