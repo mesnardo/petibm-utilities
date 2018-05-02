@@ -154,6 +154,7 @@ int main(int argc, char **argv)
 				PETSC_COMM_SELF, filepath, "wx", gridwx); CHKERRQ(ierr);
 		}
 	}
+	ierr = PetibmGridDestroy(gridwx); CHKERRQ(ierr);
 	// create grid for z-vorticity
 	if (compute_wz)
 	{
@@ -173,6 +174,7 @@ int main(int argc, char **argv)
 				PETSC_COMM_SELF, filepath, "wz", gridwz); CHKERRQ(ierr);
 		}
 	}
+	ierr = PetibmGridDestroy(gridwz); CHKERRQ(ierr);
 	// create base DMDA object
 	ierr = PetibmFieldDMDACreate3d(gridCtx, fieldCtx, da); CHKERRQ(ierr);
 	// initialize field for ux velocity
@@ -266,8 +268,6 @@ int main(int argc, char **argv)
 	ierr = PetibmGridDestroy(gridux); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduy); CHKERRQ(ierr);
 	ierr = PetibmGridDestroy(griduz); CHKERRQ(ierr);
-	ierr = PetibmGridDestroy(gridwx); CHKERRQ(ierr);
-	ierr = PetibmGridDestroy(gridwz); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(ux); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uy); CHKERRQ(ierr);
 	ierr = PetibmFieldDestroy(uz); CHKERRQ(ierr);
